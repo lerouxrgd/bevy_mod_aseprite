@@ -149,8 +149,22 @@ impl AsepriteAnimation {
         self.time_elapsed
     }
 
-    // Returns whether the frame was changed
-    pub fn update(&mut self, info: &AsepriteInfo, dt: Duration) -> bool {
+    pub fn last_frame_finished(&self, info: &AsepriteInfo, dt: Duration) -> bool {
+        let Some(tag) = self.tag.as_ref() else {
+            warn!("Animation has no tag");
+            return false;
+        };
+        let Some(tag) = info.tags.get(tag) else {
+            error!("Tag {} wasn't found.", tag);
+            return false;
+        };
+        let is_last_frame = self.current_frame == (tag.frames.end - 1) as usize;
+        let frame_finished = self.time_elapsed() + dt >= self.current_frame_duration(info);
+        is_last_frame && frame_finished
+    }
+
+    /// Returns whether the frame was changed
+    fn update(&mut self, info: &AsepriteInfo, dt: Duration) -> bool {
         if self.tag_changed {
             self.reset(info);
             return true;
