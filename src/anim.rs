@@ -1,9 +1,9 @@
 use std::time::Duration;
 
 use bevy::prelude::*;
+use bevy_aseprite_reader as reader;
 
 use crate::{Aseprite, AsepriteInfo};
-use bevy_aseprite_reader as reader;
 
 /// A tag representing an animation
 #[derive(Debug, Default, Component, Copy, Clone, PartialEq, Eq)]
@@ -230,19 +230,14 @@ pub(crate) fn update_animations(
         let aseprite = match aseprites.get(handle) {
             Some(aseprite) => aseprite,
             None => {
-                error!("Aseprite handle is invalid");
+                error!("Aseprite handle {handle:?} is invalid");
                 continue;
             }
         };
-        let info = match &aseprite.info {
-            Some(info) => info,
-            None => {
-                error!("Aseprite info is None");
-                continue;
+        if animation.update(&aseprite.info, time.delta()) {
+            if let Some(index) = aseprite.atlas.frame_to_idx(animation.current_frame) {
+                sprite.index = index;
             }
-        };
-        if animation.update(info, time.delta()) {
-            sprite.index = aseprite.frame_to_idx[animation.current_frame];
         }
     }
 }
