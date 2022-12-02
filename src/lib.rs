@@ -42,10 +42,10 @@ impl Aseprite {
 }
 
 /// A bundle defining a drawn aseprite
-#[derive(Debug, Default, Bundle)]
+#[derive(Default, Bundle)]
 pub struct AsepriteBundle {
     #[bundle]
-    pub transform: TransformBundle, // TODO: needed ?
-    pub animation: AsepriteAnimation,
+    pub transform: TransformBundle,
     pub aseprite: Handle<Aseprite>,
+    pub animation: AsepriteAnimation,
 }

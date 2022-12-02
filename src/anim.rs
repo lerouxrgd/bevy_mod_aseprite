@@ -26,9 +26,9 @@ impl AsepriteTag {
 
 #[derive(Debug, Component, PartialEq, Eq)]
 pub struct AsepriteAnimation {
-    pub is_playing: bool,
+    is_playing: bool,
     tag: Option<String>,
-    pub current_frame: usize,
+    current_frame: usize,
     forward: bool,
     time_elapsed: Duration,
     tag_changed: bool,
@@ -38,10 +38,10 @@ impl Default for AsepriteAnimation {
     fn default() -> Self {
         Self {
             is_playing: true,
-            tag: Default::default(),
-            current_frame: Default::default(),
-            forward: Default::default(),
-            time_elapsed: Default::default(),
+            tag: default(),
+            current_frame: default(),
+            forward: default(),
+            time_elapsed: default(),
             tag_changed: true,
         }
     }
@@ -246,7 +246,7 @@ impl From<&str> for AsepriteAnimation {
     fn from(tag: &str) -> AsepriteAnimation {
         AsepriteAnimation {
             tag: Some(tag.to_owned()),
-            ..Default::default()
+            ..default()
         }
     }
 }
@@ -255,7 +255,7 @@ impl From<String> for AsepriteAnimation {
     fn from(tag: String) -> AsepriteAnimation {
         AsepriteAnimation {
             tag: Some(tag),
-            ..Default::default()
+            ..default()
         }
     }
 }

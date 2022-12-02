@@ -58,7 +58,7 @@ impl AssetLoader for AsepriteLoader {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) enum AsepriteAtlas {
+pub enum AsepriteAtlas {
     Raw {
         /// Raw Aseprite textures
         textures: Vec<Image>,
@@ -127,12 +127,12 @@ pub(crate) fn process_load(
 
                 let mut frame_handles = vec![];
                 let mut atlas = TextureAtlasBuilder::default();
-                for texture in textures.into_iter() {
+                for texture in textures.iter_mut() {
                     let texture_handle = images.add(texture.clone());
                     frame_handles.push(texture_handle.as_weak());
-                    atlas.add_texture(texture_handle, &texture);
+                    atlas.add_texture(texture_handle, texture);
                 }
-                let atlas = match atlas.finish(&mut *images) {
+                let atlas = match atlas.finish(&mut images) {
                     Ok(atlas) => atlas,
                     Err(err) => {
                         error!(
@@ -159,12 +159,15 @@ pub(crate) fn process_load(
     }
 }
 
-pub(crate) fn insert_sprite_sheet(
+pub fn insert_sprite_sheet(
     mut commands: Commands,
-    aseprites: ResMut<Assets<Aseprite>>,
-    mut query: Query<(Entity, &Transform, &Handle<Aseprite>), Without<TextureAtlasSprite>>,
+    aseprites: Res<Assets<Aseprite>>,
+    query: Query<
+        (Entity, &Transform, &Handle<Aseprite>),
+        Or<(Without<TextureAtlasSprite>, Changed<Handle<Aseprite>>)>,
+    >,
 ) {
-    for (entity, &transform, handle) in query.iter_mut() {
+    for (entity, &transform, handle) in query.iter() {
         let aseprite = match aseprites.get(handle) {
             Some(aseprite) => aseprite,
             None => {
@@ -176,7 +179,7 @@ pub(crate) fn insert_sprite_sheet(
             commands.entity(entity).insert_bundle(SpriteSheetBundle {
                 texture_atlas: atlas.clone(),
                 transform,
-                ..Default::default()
+                ..default()
             });
         } else {
             debug!("Aseprite {aseprite:?} not ready yet");
