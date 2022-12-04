@@ -3,7 +3,6 @@ use bevy::{
     prelude::*,
     render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
-use bevy_aseprite_reader as reader;
 
 use crate::Aseprite;
 
@@ -19,7 +18,7 @@ impl AssetLoader for AsepriteLoader {
         Box::pin(async move {
             debug!("Loading aseprite at {:?}", load_context.path());
 
-            let ase_data = reader::Aseprite::from_bytes(bytes)?;
+            let ase_data = bevy_aseprite_reader::Aseprite::from_bytes(bytes)?;
             let frames = ase_data.frames();
             let ase_images = frames
                 .get_for(&(0..frames.count() as u16))
@@ -116,13 +115,12 @@ pub(crate) fn process_load(
                     }
                 }
                 let Some(aseprite) = aseprites.get_mut(handle) else {
-                        error!("Handle {handle:?} not found in Assets<Aseprite>");
-                        continue;
+                    error!("Handle {handle:?} not found in Assets<Aseprite>");
+                    continue;
                 };
                 let AsepriteAtlas::Raw { textures } = &mut aseprite.atlas else {
-                            error!("Aseprite {aseprite:?} atlas is already loaded");
-                            continue;
-
+                    error!("Aseprite {aseprite:?} atlas is already loaded");
+                    continue;
                 };
 
                 let mut frame_handles = vec![];

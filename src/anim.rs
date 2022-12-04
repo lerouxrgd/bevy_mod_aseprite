@@ -1,9 +1,9 @@
 use std::time::Duration;
 
 use bevy::prelude::*;
-use bevy_aseprite_reader as reader;
+use bevy_aseprite_reader::{raw::AsepriteAnimationDirection, AsepriteInfo};
 
-use crate::{Aseprite, AsepriteInfo};
+use crate::Aseprite;
 
 /// A tag representing an animation
 #[derive(Debug, Default, Component, Copy, Clone, PartialEq, Eq)]
@@ -61,7 +61,6 @@ impl AsepriteAnimation {
                 };
 
                 let range = tag.frames.clone();
-                use reader::raw::AsepriteAnimationDirection;
                 match tag.animation_direction {
                     AsepriteAnimationDirection::Forward | AsepriteAnimationDirection::PingPong => {
                         self.current_frame = range.start as usize;
@@ -93,7 +92,7 @@ impl AsepriteAnimation {
 
                 let range = tag.frames.clone();
                 match tag.animation_direction {
-                    reader::raw::AsepriteAnimationDirection::Forward => {
+                    AsepriteAnimationDirection::Forward => {
                         let next_frame = self.current_frame + 1;
                         if range.contains(&(next_frame as u16)) {
                             self.current_frame = next_frame;
@@ -101,7 +100,7 @@ impl AsepriteAnimation {
                             self.current_frame = range.start as usize;
                         }
                     }
-                    reader::raw::AsepriteAnimationDirection::Reverse => {
+                    AsepriteAnimationDirection::Reverse => {
                         let next_frame = self.current_frame.checked_sub(1);
                         if let Some(next_frame) = next_frame {
                             if range.contains(&((next_frame) as u16)) {
@@ -113,7 +112,7 @@ impl AsepriteAnimation {
                             self.current_frame = range.end as usize - 1;
                         }
                     }
-                    reader::raw::AsepriteAnimationDirection::PingPong => {
+                    AsepriteAnimationDirection::PingPong => {
                         if self.forward {
                             let next_frame = self.current_frame + 1;
                             if range.contains(&(next_frame as u16)) {
@@ -141,26 +140,52 @@ impl AsepriteAnimation {
         }
     }
 
+    /// The current frame absolute index
+    pub fn current_frame(&self) -> usize {
+        self.current_frame
+    }
+
+    /// The current frame duration
     pub fn current_frame_duration(&self, info: &AsepriteInfo) -> Duration {
         Duration::from_millis(info.frame_infos[self.current_frame].delay_ms as u64)
     }
 
-    pub fn time_elapsed(&self) -> Duration {
-        self.time_elapsed
-    }
-
-    pub fn last_frame_finished(&self, info: &AsepriteInfo, dt: Duration) -> bool {
+    /// The current frame relative index within the current tag
+    pub fn current_tag_frame(&self, info: &AsepriteInfo) -> usize {
         let Some(tag) = self.tag.as_ref() else {
             warn!("Animation has no tag");
-            return false;
+            return 0;
         };
         let Some(tag) = info.tags.get(tag) else {
             error!("Tag {} wasn't found.", tag);
-            return false;
+            return 0;
         };
-        let is_last_frame = self.current_frame == (tag.frames.end - 1) as usize;
-        let frame_finished = self.time_elapsed() + dt >= self.current_frame_duration(info);
-        is_last_frame && frame_finished
+        self.current_frame
+            .checked_sub(tag.frames.start as usize)
+            .unwrap_or(0)
+    }
+
+    /// The number of remaning frames in the current tag
+    pub fn remaining_tag_frames(&self, info: &AsepriteInfo) -> usize {
+        let Some(tag) = self.tag.as_ref() else {
+            warn!("Animation has no tag");
+            return 0;
+        };
+        let Some(tag) = info.tags.get(tag) else {
+            error!("Tag {} wasn't found.", tag);
+            return 0;
+        };
+        (tag.frames.end as usize - 1) - self.current_frame
+    }
+
+    /// Returns whether the current frame is finished
+    pub fn frame_finished(&self, info: &AsepriteInfo, dt: Duration) -> bool {
+        self.time_elapsed() + dt >= self.current_frame_duration(info)
+    }
+
+    /// Time elapsed in the current frame
+    pub fn time_elapsed(&self) -> Duration {
+        self.time_elapsed
     }
 
     /// Returns whether the frame was changed
@@ -186,38 +211,33 @@ impl AsepriteAnimation {
         frame_changed
     }
 
-    /// Get the current frame
-    pub fn current_frame(&self) -> usize {
-        self.current_frame
-    }
-
-    /// Start or resume playing an animation
+    /// Starts or resumes playing an animation
     pub fn play(&mut self) {
         self.is_playing = true;
     }
 
-    /// Pause the current animation
+    /// Pauses the current animation
     pub fn pause(&mut self) {
         self.is_playing = false;
     }
 
-    /// Returns `true` if the animation is playing
+    /// Returns whether the animation is playing
     pub fn is_playing(&self) -> bool {
         self.is_playing
     }
 
-    /// Returns `true` if the animation is paused
+    /// Returns whether the animation is paused
     pub fn is_paused(&self) -> bool {
         !self.is_playing
     }
 
-    /// Toggle state between playing and pausing
+    /// Toggles state between playing and pausing
     pub fn toggle(&mut self) {
         self.is_playing = !self.is_playing;
     }
 }
 
-pub(crate) fn update_animations(
+pub fn update_animations(
     time: Res<Time>,
     aseprites: Res<Assets<Aseprite>>,
     mut aseprites_query: Query<(
