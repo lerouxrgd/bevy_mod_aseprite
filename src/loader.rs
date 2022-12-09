@@ -14,7 +14,7 @@ impl AssetLoader for AsepriteLoader {
         &'a self,
         bytes: &'a [u8],
         load_context: &'a mut bevy::asset::LoadContext,
-    ) -> bevy::asset::BoxedFuture<'a, Result<(), anyhow::Error>> {
+    ) -> bevy::asset::BoxedFuture<'a, Result<(), bevy::asset::Error>> {
         Box::pin(async move {
             debug!("Loading aseprite at {:?}", load_context.path());
 

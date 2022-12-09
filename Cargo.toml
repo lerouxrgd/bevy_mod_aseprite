@@ -6,7 +6,6 @@ license = "MIT OR Apache-2.0"
 exclude = ["assets/"]
 
 [dependencies]
-anyhow = "1"
 bevy = { version = "0.8", default-features = false, features = ["render", "bevy_asset"] }
 bevy_aseprite_derive = "0.2"
 bevy_aseprite_reader = "0.1"
