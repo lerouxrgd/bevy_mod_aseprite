@@ -9,18 +9,17 @@ use crate::Aseprite;
 #[derive(Debug, Default, Component, Copy, Clone, PartialEq, Eq)]
 pub struct AsepriteTag(&'static str);
 
+impl From<&'static str> for AsepriteTag {
+    fn from(id: &'static str) -> Self {
+        Self(id)
+    }
+}
+
 impl std::ops::Deref for AsepriteTag {
     type Target = &'static str;
 
     fn deref(&self) -> &Self::Target {
         &self.0
-    }
-}
-
-impl AsepriteTag {
-    /// Create a new tag
-    pub const fn new(id: &'static str) -> AsepriteTag {
-        AsepriteTag(id)
     }
 }
 
@@ -258,6 +257,15 @@ pub fn update_animations(
             if let Some(index) = aseprite.atlas.frame_to_idx(animation.current_frame) {
                 sprite.index = index;
             }
+        }
+    }
+}
+
+impl From<AsepriteTag> for AsepriteAnimation {
+    fn from(tag: AsepriteTag) -> AsepriteAnimation {
+        AsepriteAnimation {
+            tag: Some(tag.0.to_owned()),
+            ..default()
         }
     }
 }
