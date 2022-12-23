@@ -6,7 +6,7 @@ use bevy_aseprite_reader::{raw::AsepriteAnimationDirection, AsepriteInfo};
 use crate::Aseprite;
 
 /// A tag representing an animation
-#[derive(Debug, Default, Component, Copy, Clone, PartialEq, Eq)]
+#[derive(Component, Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub struct AsepriteTag(&'static str);
 
 impl From<&'static str> for AsepriteTag {
@@ -23,7 +23,7 @@ impl std::ops::Deref for AsepriteTag {
     }
 }
 
-#[derive(Debug, Component, PartialEq, Eq)]
+#[derive(Component, Debug, PartialEq, Eq)]
 pub struct AsepriteAnimation {
     is_playing: bool,
     tag: Option<String>,
