@@ -3,6 +3,7 @@ name = "bevy_mod_aseprite"
 version = "0.2.0"
 edition = "2021"
 description = "A plugin for using Aseprite animations in Bevy"
+repository = "https://github.com/lerouxrgd/bevy_mod_aseprite"
 license = "MIT OR Apache-2.0"
 exclude = ["assets/"]
 
