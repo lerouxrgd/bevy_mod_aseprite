@@ -1,0 +1,25 @@
+name: Build & Test
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v3
+      - run: rustup update
+      - run: cargo build
+      - run: cargo fmt --check --all
+      - run: cargo clippy -- -D warnings
+      - run: cargo test --verbose

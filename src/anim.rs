@@ -159,9 +159,7 @@ impl AsepriteAnimation {
             error!("Tag {} wasn't found.", tag);
             return 0;
         };
-        self.current_frame
-            .checked_sub(tag.frames.start as usize)
-            .unwrap_or(0)
+        self.current_frame.saturating_sub(tag.frames.start as usize)
     }
 
     /// The number of remaning frames in the current tag
