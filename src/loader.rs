@@ -127,7 +127,7 @@ pub(crate) fn process_load(
                 let mut atlas = TextureAtlasBuilder::default();
                 for texture in textures.iter_mut() {
                     let texture_handle = images.add(texture.clone());
-                    frame_handles.push(texture_handle.as_weak());
+                    frame_handles.push(texture_handle.cast_weak());
                     atlas.add_texture(texture_handle, texture);
                 }
                 let atlas = match atlas.finish(&mut images) {
@@ -174,7 +174,7 @@ pub fn insert_sprite_sheet(
             }
         };
         if let Some(atlas) = aseprite.atlas.handle() {
-            commands.entity(entity).insert_bundle(SpriteSheetBundle {
+            commands.entity(entity).insert(SpriteSheetBundle {
                 texture_atlas: atlas.clone(),
                 transform,
                 ..default()

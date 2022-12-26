@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy::render::texture::ImageSettings;
 use bevy::utils::HashSet;
 use bevy_mod_aseprite::{Aseprite, AsepriteAnimation, AsepriteBundle, AsepritePlugin, AsepriteTag};
 
@@ -10,8 +9,7 @@ pub mod sprites {
 
 pub fn main() {
     App::new()
-        .insert_resource(ImageSettings::default_nearest())
-        .add_plugins(DefaultPlugins)
+        .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_plugin(AsepritePlugin)
         .init_resource::<Events<PlayerChanged>>()
         .add_startup_system(setup)
@@ -22,14 +20,13 @@ pub fn main() {
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn_bundle(Camera2dBundle::default());
+    commands.spawn(Camera2dBundle::default());
 
     commands
-        .spawn()
-        .insert(Player)
+        .spawn(Player)
         .insert(PlayerState::Stand)
         .insert(Orientation::Right)
-        .insert_bundle(AsepriteBundle {
+        .insert(AsepriteBundle {
             aseprite: asset_server.load(sprites::Player::PATH),
             animation: AsepriteAnimation::from(sprites::Player::tags::STAND),
             transform: TransformBundle::from_transform(Transform {

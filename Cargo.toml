@@ -1,15 +1,15 @@
 [package]
 name = "bevy_mod_aseprite"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "A plugin for using Aseprite animations in Bevy"
 license = "MIT OR Apache-2.0"
 exclude = ["assets/"]
 
 [dependencies]
-bevy = { version = "0.8", default-features = false, features = ["render", "bevy_asset"] }
+bevy = { version = "0.9", default-features = false, features = ["render", "bevy_asset"] }
 bevy_aseprite_derive = "0.2"
 bevy_aseprite_reader = "0.1"
 
 [dev-dependencies]
-bevy = { version = "0.8" }
+bevy = { version = "0.9" }

@@ -70,6 +70,7 @@ fn transition_player(
 | **bevy** | **bevy_mod_aseprite** |
 |----------|-----------------------|
 | 0.8      | 0.1                   |
+| 0.9      | 0.2                   |
 
 ## History
 
