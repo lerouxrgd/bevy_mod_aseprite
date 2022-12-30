@@ -251,10 +251,8 @@ pub fn update_animations(
                 continue;
             }
         };
-        if animation.update(&aseprite.info, time.delta()) {
-            if let Some(index) = aseprite.atlas.frame_to_idx(animation.current_frame) {
-                sprite.index = index;
-            }
+        if animation.update(aseprite.info(), time.delta()) {
+            sprite.index = animation.current_frame;
         }
     }
 }

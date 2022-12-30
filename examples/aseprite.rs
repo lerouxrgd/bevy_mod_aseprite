@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use bevy::utils::HashSet;
+use bevy::{asset::LoadState, prelude::*};
 use bevy_mod_aseprite::{Aseprite, AsepriteAnimation, AsepriteBundle, AsepritePlugin, AsepriteTag};
 
 pub mod sprites {
@@ -9,30 +9,79 @@ pub mod sprites {
 
 pub fn main() {
     App::new()
-        .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
+        .add_plugins(
+            DefaultPlugins
+                .set(ImagePlugin::default_nearest())
+                .set(AssetPlugin {
+                    watch_for_changes: true,
+                    ..default()
+                }),
+        )
         .add_plugin(AsepritePlugin)
         .init_resource::<Events<PlayerChanged>>()
-        .add_startup_system(setup)
-        .add_system(keyboard_input)
-        .add_system(transition_player)
-        .add_system(update_player)
+        .init_resource::<AsepriteHandles>()
+        .add_state(AppState::Setup)
+        .add_system_set(SystemSet::on_enter(AppState::Setup).with_system(load_assets))
+        .add_system_set(SystemSet::on_update(AppState::Setup).with_system(check_assets))
+        .add_system_set(SystemSet::on_enter(AppState::Ready).with_system(setup))
+        .add_system_set(
+            SystemSet::on_update(AppState::Ready)
+                .with_system(keyboard_input)
+                .with_system(transition_player)
+                .with_system(update_player),
+        )
         .run();
 }
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+enum AppState {
+    Setup,
+    Ready,
+}
+
+#[derive(Resource, Deref, Default)]
+struct AsepriteHandles {
+    handles: Vec<HandleUntyped>,
+}
+
+fn load_assets(mut aseprite_handles: ResMut<AsepriteHandles>, asset_server: Res<AssetServer>) {
+    let player: Handle<Aseprite> = asset_server.load(sprites::Player::PATH);
+    aseprite_handles.handles = vec![player.clone_untyped()];
+}
+
+fn check_assets(
+    mut state: ResMut<State<AppState>>,
+    aseprite_handles: ResMut<AsepriteHandles>,
+    asset_server: Res<AssetServer>,
+) {
+    if let LoadState::Loaded =
+        asset_server.get_group_load_state(aseprite_handles.handles.iter().map(|handle| handle.id))
+    {
+        state.set(AppState::Ready).unwrap();
+    }
+}
+
+fn setup(
+    mut commands: Commands,
+    aseprite_handles: Res<AsepriteHandles>,
+    aseprites: Res<Assets<Aseprite>>,
+) {
     commands.spawn(Camera2dBundle::default());
 
+    let aseprite_handle = aseprite_handles[0].typed_weak();
     commands
         .spawn(Player)
         .insert(PlayerState::Stand)
         .insert(Orientation::Right)
         .insert(AsepriteBundle {
-            aseprite: asset_server.load(sprites::Player::PATH),
+            aseprite: aseprite_handle.cast_weak(),
             animation: AsepriteAnimation::from(sprites::Player::tags::STAND),
-            transform: TransformBundle::from_transform(Transform {
+            texture_atlas: aseprites.get(&aseprite_handle).unwrap().atlas(),
+            transform: Transform {
                 scale: Vec3::splat(1.5),
                 ..default()
-            }),
+            },
+            ..default()
         });
 }
 

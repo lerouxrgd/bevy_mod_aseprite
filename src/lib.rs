@@ -20,31 +20,38 @@ impl Plugin for AsepritePlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_asset::<Aseprite>()
             .add_asset_loader(loader::AsepriteLoader)
-            .add_system(loader::process_load)
-            .add_system(loader::insert_sprite_sheet)
-            .add_system(anim::update_animations.after(loader::insert_sprite_sheet));
+            .add_system(anim::update_animations);
     }
 }
 
 #[derive(Debug, Clone, TypeUuid)]
-#[uuid = "f72b299c-1158-491a-8bfb-53710622bf19"]
+#[uuid = "da8830c7-c98a-45e1-9191-1fb9381c9980"]
 pub struct Aseprite {
     /// Info stores data such as tags and slices
     info: AsepriteInfo,
-    /// Atlas that gets built from the frame info of the aseprite file
-    atlas: loader::AsepriteAtlas,
+    /// Atlas that gets built from the frame info of the Aseprite file
+    atlas: Handle<TextureAtlas>,
 }
 
 impl Aseprite {
     pub fn info(&self) -> &AsepriteInfo {
         &self.info
     }
+
+    pub fn atlas(&self) -> Handle<TextureAtlas> {
+        self.atlas.clone()
+    }
 }
 
-/// A bundle defining a drawn aseprite
+/// A bundle defining a drawn Aseprite
 #[derive(Default, Bundle)]
 pub struct AsepriteBundle {
-    pub transform: TransformBundle,
     pub aseprite: Handle<Aseprite>,
     pub animation: AsepriteAnimation,
+    pub sprite: TextureAtlasSprite,
+    pub texture_atlas: Handle<TextureAtlas>,
+    pub transform: Transform,
+    pub global_transform: GlobalTransform,
+    pub visibility: Visibility,
+    pub computed_visibility: ComputedVisibility,
 }
