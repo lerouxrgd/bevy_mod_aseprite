@@ -20,10 +20,10 @@ pub fn main() {
         .add_plugin(AsepritePlugin)
         .init_resource::<Events<PlayerChanged>>()
         .init_resource::<AsepriteHandles>()
-        .add_state(AppState::Setup)
-        .add_system_set(SystemSet::on_enter(AppState::Setup).with_system(load_assets))
-        .add_system_set(SystemSet::on_update(AppState::Setup).with_system(check_assets))
-        .add_system_set(SystemSet::on_enter(AppState::Ready).with_system(setup))
+        .add_state(AppState::Loading)
+        .add_system_set(SystemSet::on_enter(AppState::Loading).with_system(load_assets))
+        .add_system_set(SystemSet::on_update(AppState::Loading).with_system(check_assets))
+        .add_system_set(SystemSet::on_exit(AppState::Loading).with_system(setup))
         .add_system_set(
             SystemSet::on_update(AppState::Ready)
                 .with_system(keyboard_input)
@@ -35,27 +35,25 @@ pub fn main() {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum AppState {
-    Setup,
+    Loading,
     Ready,
 }
 
-#[derive(Resource, Deref, Default)]
-struct AsepriteHandles {
-    handles: Vec<HandleUntyped>,
-}
+#[derive(Resource, Deref, DerefMut, Default)]
+struct AsepriteHandles(Vec<Handle<Aseprite>>);
 
 fn load_assets(mut aseprite_handles: ResMut<AsepriteHandles>, asset_server: Res<AssetServer>) {
     let player: Handle<Aseprite> = asset_server.load(sprites::Player::PATH);
-    aseprite_handles.handles = vec![player.clone_untyped()];
+    aseprite_handles.push(player);
 }
 
 fn check_assets(
-    mut state: ResMut<State<AppState>>,
     aseprite_handles: ResMut<AsepriteHandles>,
     asset_server: Res<AssetServer>,
+    mut state: ResMut<State<AppState>>,
 ) {
     if let LoadState::Loaded =
-        asset_server.get_group_load_state(aseprite_handles.handles.iter().map(|handle| handle.id))
+        asset_server.get_group_load_state(aseprite_handles.iter().map(|handle| handle.id()))
     {
         state.set(AppState::Ready).unwrap();
     }
@@ -68,15 +66,19 @@ fn setup(
 ) {
     commands.spawn(Camera2dBundle::default());
 
-    let aseprite_handle = aseprite_handles[0].typed_weak();
+    let aseprite_handle = &aseprite_handles[0];
+    let aseprite = aseprites.get(aseprite_handle).unwrap();
+    let animation = AsepriteAnimation::new(aseprite.info(), sprites::Player::tags::STAND);
+
     commands
         .spawn(Player)
         .insert(PlayerState::Stand)
         .insert(Orientation::Right)
         .insert(AsepriteBundle {
-            aseprite: aseprite_handle.cast_weak(),
-            animation: AsepriteAnimation::from(sprites::Player::tags::STAND),
-            texture_atlas: aseprites.get(&aseprite_handle).unwrap().atlas(),
+            texture_atlas: aseprite.atlas().clone_weak(),
+            sprite: TextureAtlasSprite::new(animation.current_frame()),
+            aseprite: aseprite_handle.clone_weak(),
+            animation,
             transform: Transform {
                 scale: Vec3::splat(1.5),
                 ..default()
@@ -87,6 +89,7 @@ fn setup(
 
 fn update_player(
     time: Res<Time>,
+    aseprites: Res<Assets<Aseprite>>,
     mut commands: Commands,
     mut ev_player_changed: EventReader<PlayerChanged>,
     mut player_q: Query<
@@ -96,21 +99,23 @@ fn update_player(
             Option<&Movements>,
             &mut Transform,
             &mut TextureAtlasSprite,
+            &Handle<Aseprite>,
             &mut AsepriteAnimation,
             &mut Orientation,
         ),
         With<Player>,
     >,
 ) {
-    let Ok((
+    let (
         player,
         mut player_state,
         movements,
         mut transform,
-        mut sprite_atlas,
+        mut sprite,
+        aseprite,
         mut animation,
-        mut orientation
-    )) = player_q.get_single_mut() else { return };
+        mut orientation,
+    ) = player_q.single_mut();
 
     for PlayerChanged {
         new_state,
@@ -119,7 +124,8 @@ fn update_player(
     } in ev_player_changed.iter()
     {
         if let Some(new_state) = new_state {
-            *animation = AsepriteAnimation::from(new_state.animation_tag());
+            let info = aseprites.get(aseprite).unwrap().info();
+            *animation = AsepriteAnimation::new(info, new_state.animation_tag());
             match new_state {
                 PlayerState::Stand | PlayerState::Attack => {
                     commands.entity(player).remove::<Movements>();
@@ -130,7 +136,7 @@ fn update_player(
         }
 
         if let Some(new_orientation) = new_orientation {
-            sprite_atlas.flip_x = new_orientation.flip_x();
+            sprite.flip_x = new_orientation.flip_x();
             *orientation = *new_orientation;
         }
 
@@ -159,11 +165,11 @@ fn transition_player(
     mut ev_player_changed: EventWriter<PlayerChanged>,
 ) {
     let (&player_state, handle, anim) = player_q.single();
-    let Some(aseprite) = aseprites.get(handle) else { return };
+    let aseprite = aseprites.get(handle).unwrap();
     match player_state {
         PlayerState::Attack => {
-            let remaining_frames = anim.remaining_tag_frames(aseprite.info());
-            let frame_finished = anim.frame_finished(aseprite.info(), time.delta());
+            let remaining_frames = anim.remaining_tag_frames(aseprite.info()).unwrap();
+            let frame_finished = anim.frame_finished(time.delta());
             if remaining_frames == 0 && frame_finished {
                 ev_player_changed.send(PlayerChanged::default().new_state(PlayerState::Stand));
             }

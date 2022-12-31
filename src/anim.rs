@@ -5,76 +5,72 @@ use bevy_aseprite_reader::{raw::AsepriteAnimationDirection, AsepriteInfo};
 
 use crate::Aseprite;
 
-/// A tag representing an animation
-#[derive(Component, Debug, Default, Copy, Clone, PartialEq, Eq)]
-pub struct AsepriteTag(&'static str);
-
-impl From<&'static str> for AsepriteTag {
-    fn from(id: &'static str) -> Self {
-        Self(id)
-    }
-}
-
-impl std::ops::Deref for AsepriteTag {
-    type Target = &'static str;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-#[derive(Component, Debug, PartialEq, Eq)]
+#[derive(Component, Debug, Default)]
 pub struct AsepriteAnimation {
-    is_playing: bool,
     tag: Option<String>,
     current_frame: usize,
+    current_timer: Timer,
     forward: bool,
-    time_elapsed: Duration,
-    tag_changed: bool,
-}
-
-impl Default for AsepriteAnimation {
-    fn default() -> Self {
-        Self {
-            is_playing: true,
-            tag: default(),
-            current_frame: default(),
-            forward: default(),
-            time_elapsed: default(),
-            tag_changed: true,
-        }
-    }
 }
 
 impl AsepriteAnimation {
-    fn reset(&mut self, info: &AsepriteInfo) {
-        self.tag_changed = false;
-        match &self.tag {
-            Some(tag) => {
-                let tag = match info.tags.get(tag) {
-                    Some(tag) => tag,
-                    None => {
-                        error!("Tag {} wasn't found.", tag);
-                        return;
-                    }
-                };
+    pub fn new<T, U>(info: &AsepriteInfo, tag: T) -> Self
+    where
+        T: Into<Option<U>>,
+        U: Into<AsepriteTag>,
+    {
+        let tag = tag.into().map(|t| t.into().0);
 
-                let range = tag.frames.clone();
-                match tag.animation_direction {
-                    AsepriteAnimationDirection::Forward | AsepriteAnimationDirection::PingPong => {
-                        self.current_frame = range.start as usize;
-                        self.forward = true;
-                    }
-                    AsepriteAnimationDirection::Reverse => {
-                        self.current_frame = range.end as usize - 1;
-                        self.forward = false;
-                    }
-                }
-            }
-            None => {
-                self.current_frame = 0;
-                self.forward = true;
-            }
+        let (current_frame, current_timer, forward) = tag
+            .as_ref()
+            .and_then(|tag| {
+                info.tags.get(tag).map(|tag| {
+                    let (current_frame, forward) = match tag.animation_direction {
+                        AsepriteAnimationDirection::Forward
+                        | AsepriteAnimationDirection::PingPong => (tag.frames.start as usize, true),
+                        AsepriteAnimationDirection::Reverse => (tag.frames.end as usize - 1, false),
+                    };
+                    let current_timer = Timer::from_seconds(
+                        info.frame_infos[current_frame].delay_ms as f32 / 1000.0,
+                        TimerMode::Once,
+                    );
+                    (current_frame, current_timer, forward)
+                })
+            })
+            .unwrap_or_else(|| {
+                let current_frame = 0;
+                let forward = true;
+                let current_timer = Timer::from_seconds(
+                    info.frame_infos[current_frame].delay_ms as f32 / 1000.0,
+                    TimerMode::Once,
+                );
+                (current_frame, current_timer, forward)
+            });
+
+        Self {
+            tag,
+            current_frame,
+            current_timer,
+            forward,
+        }
+    }
+
+    /// Returns whether the frame was changed
+    fn update(&mut self, info: &AsepriteInfo, dt: Duration) -> bool {
+        if self.is_paused() {
+            return false;
+        }
+
+        self.current_timer.tick(dt);
+        if self.current_timer.finished() {
+            self.next_frame(info);
+            self.current_timer = Timer::from_seconds(
+                self.current_frame_duration(info).as_secs_f32(),
+                TimerMode::Once,
+            );
+            true
+        } else {
+            false
         }
     }
 
@@ -89,32 +85,31 @@ impl AsepriteAnimation {
                     }
                 };
 
-                let range = tag.frames.clone();
                 match tag.animation_direction {
                     AsepriteAnimationDirection::Forward => {
                         let next_frame = self.current_frame + 1;
-                        if range.contains(&(next_frame as u16)) {
+                        if tag.frames.contains(&(next_frame as u16)) {
                             self.current_frame = next_frame;
                         } else {
-                            self.current_frame = range.start as usize;
+                            self.current_frame = tag.frames.start as usize;
                         }
                     }
                     AsepriteAnimationDirection::Reverse => {
                         let next_frame = self.current_frame.checked_sub(1);
                         if let Some(next_frame) = next_frame {
-                            if range.contains(&((next_frame) as u16)) {
+                            if tag.frames.contains(&((next_frame) as u16)) {
                                 self.current_frame = next_frame;
                             } else {
-                                self.current_frame = range.end as usize - 1;
+                                self.current_frame = tag.frames.end as usize - 1;
                             }
                         } else {
-                            self.current_frame = range.end as usize - 1;
+                            self.current_frame = tag.frames.end as usize - 1;
                         }
                     }
                     AsepriteAnimationDirection::PingPong => {
                         if self.forward {
                             let next_frame = self.current_frame + 1;
-                            if range.contains(&(next_frame as u16)) {
+                            if tag.frames.contains(&(next_frame as u16)) {
                                 self.current_frame = next_frame;
                             } else {
                                 self.current_frame = next_frame.saturating_sub(1);
@@ -123,7 +118,7 @@ impl AsepriteAnimation {
                         } else {
                             let next_frame = self.current_frame.checked_sub(1);
                             if let Some(next_frame) = next_frame {
-                                if range.contains(&(next_frame as u16)) {
+                                if tag.frames.contains(&(next_frame as u16)) {
                                     self.current_frame = next_frame
                                 }
                             }
@@ -139,98 +134,82 @@ impl AsepriteAnimation {
         }
     }
 
-    /// The current frame absolute index
-    pub fn current_frame(&self) -> usize {
-        self.current_frame
-    }
-
     /// The current frame duration
     pub fn current_frame_duration(&self, info: &AsepriteInfo) -> Duration {
         Duration::from_millis(info.frame_infos[self.current_frame].delay_ms as u64)
     }
 
+    /// The current frame absolute index
+    pub fn current_frame(&self) -> usize {
+        self.current_frame
+    }
+
+    /// Set the current frame absolute index
+    pub fn set_current_frame(&mut self, frame: usize) {
+        self.current_frame = frame
+    }
+
     /// The current frame relative index within the current tag
-    pub fn current_tag_frame(&self, info: &AsepriteInfo) -> usize {
-        let Some(tag) = self.tag.as_ref() else {
-            warn!("Animation has no tag");
-            return 0;
-        };
-        let Some(tag) = info.tags.get(tag) else {
-            error!("Tag {} wasn't found.", tag);
-            return 0;
-        };
-        self.current_frame.saturating_sub(tag.frames.start as usize)
+    pub fn current_tag_frame(&self, info: &AsepriteInfo) -> Option<usize> {
+        self.tag.as_ref().and_then(|tag| {
+            if let Some(tag) = info.tags.get(tag) {
+                Some(self.current_frame.saturating_sub(tag.frames.start as usize))
+            } else {
+                error!("Tag {} wasn't found.", tag);
+                None
+            }
+        })
     }
 
     /// The number of remaning frames in the current tag
-    pub fn remaining_tag_frames(&self, info: &AsepriteInfo) -> usize {
-        let Some(tag) = self.tag.as_ref() else {
-            warn!("Animation has no tag");
-            return 0;
-        };
-        let Some(tag) = info.tags.get(tag) else {
-            error!("Tag {} wasn't found.", tag);
-            return 0;
-        };
-        (tag.frames.end as usize - 1) - self.current_frame
+    pub fn remaining_tag_frames(&self, info: &AsepriteInfo) -> Option<usize> {
+        self.tag.as_ref().and_then(|tag| {
+            if let Some(tag) = info.tags.get(tag) {
+                Some((tag.frames.end as usize - 1) - self.current_frame)
+            } else {
+                error!("Tag {} wasn't found.", tag);
+                None
+            }
+        })
     }
 
     /// Returns whether the current frame is finished
-    pub fn frame_finished(&self, info: &AsepriteInfo, dt: Duration) -> bool {
-        self.time_elapsed() + dt >= self.current_frame_duration(info)
+    pub fn frame_finished(&self, dt: Duration) -> bool {
+        self.current_timer.remaining() <= dt
     }
 
     /// Time elapsed in the current frame
     pub fn time_elapsed(&self) -> Duration {
-        self.time_elapsed
-    }
-
-    /// Returns whether the frame was changed
-    fn update(&mut self, info: &AsepriteInfo, dt: Duration) -> bool {
-        if self.tag_changed {
-            self.reset(info);
-            return true;
-        }
-
-        if self.is_paused() {
-            return false;
-        }
-
-        self.time_elapsed += dt;
-        let mut current_frame_duration = self.current_frame_duration(info);
-        let mut frame_changed = false;
-        while self.time_elapsed >= current_frame_duration {
-            self.time_elapsed -= current_frame_duration;
-            self.next_frame(info);
-            current_frame_duration = self.current_frame_duration(info);
-            frame_changed = true;
-        }
-        frame_changed
+        self.current_timer.elapsed()
     }
 
     /// Starts or resumes playing an animation
     pub fn play(&mut self) {
-        self.is_playing = true;
+        self.current_timer.unpause()
     }
 
     /// Pauses the current animation
     pub fn pause(&mut self) {
-        self.is_playing = false;
-    }
-
-    /// Returns whether the animation is playing
-    pub fn is_playing(&self) -> bool {
-        self.is_playing
+        self.current_timer.pause()
     }
 
     /// Returns whether the animation is paused
     pub fn is_paused(&self) -> bool {
-        !self.is_playing
+        self.current_timer.paused()
+    }
+
+    /// Returns whether the animation is playing
+    pub fn is_playing(&self) -> bool {
+        !self.is_paused()
     }
 
     /// Toggles state between playing and pausing
     pub fn toggle(&mut self) {
-        self.is_playing = !self.is_playing;
+        if self.is_paused() {
+            self.play()
+        } else {
+            self.pause()
+        }
     }
 }
 
@@ -252,34 +231,42 @@ pub fn update_animations(
             }
         };
         if animation.update(aseprite.info(), time.delta()) {
-            sprite.index = animation.current_frame;
+            sprite.index = animation.current_frame();
         }
     }
 }
 
-impl From<AsepriteTag> for AsepriteAnimation {
-    fn from(tag: AsepriteTag) -> AsepriteAnimation {
-        AsepriteAnimation {
-            tag: Some(tag.0.to_owned()),
-            ..default()
-        }
+pub fn refresh_animations(
+    mut aseprites_query: Query<
+        (&AsepriteAnimation, &mut TextureAtlasSprite),
+        Changed<AsepriteAnimation>,
+    >,
+) {
+    for (animation, mut sprite) in aseprites_query.iter_mut() {
+        sprite.index = animation.current_frame();
     }
 }
 
-impl From<&str> for AsepriteAnimation {
-    fn from(tag: &str) -> AsepriteAnimation {
-        AsepriteAnimation {
-            tag: Some(tag.to_owned()),
-            ..default()
-        }
+/// A tag representing an animation
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct AsepriteTag(String);
+
+impl From<&str> for AsepriteTag {
+    fn from(tag: &str) -> Self {
+        Self(tag.to_string())
     }
 }
 
-impl From<String> for AsepriteAnimation {
-    fn from(tag: String) -> AsepriteAnimation {
-        AsepriteAnimation {
-            tag: Some(tag),
-            ..default()
-        }
+impl From<String> for AsepriteTag {
+    fn from(tag: String) -> Self {
+        Self(tag)
+    }
+}
+
+impl std::ops::Deref for AsepriteTag {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }

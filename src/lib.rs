@@ -20,8 +20,15 @@ impl Plugin for AsepritePlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_asset::<Aseprite>()
             .add_asset_loader(loader::AsepriteLoader)
-            .add_system(anim::update_animations);
+            .add_system(anim::update_animations.label(AsepriteSystems::Animate))
+            .add_system(anim::refresh_animations.label(AsepriteSystems::Refresh));
     }
+}
+
+#[derive(SystemLabel, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum AsepriteSystems {
+    Animate,
+    Refresh,
 }
 
 #[derive(Debug, Clone, TypeUuid)]
@@ -38,12 +45,12 @@ impl Aseprite {
         &self.info
     }
 
-    pub fn atlas(&self) -> Handle<TextureAtlas> {
-        self.atlas.clone()
+    pub fn atlas(&self) -> &Handle<TextureAtlas> {
+        &self.atlas
     }
 }
 
-/// A bundle defining a drawn Aseprite
+/// A Bundle of components for drawing sprites from an Aseprite animation
 #[derive(Default, Bundle)]
 pub struct AsepriteBundle {
     pub aseprite: Handle<Aseprite>,

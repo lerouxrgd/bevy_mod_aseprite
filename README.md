@@ -9,39 +9,69 @@
 
 A plugin for using [Aseprite][] animations in [Bevy][].
 
+The [`AsepriteBundle`][aseprite-bundle] is composed of the same fields as the
+[`SpriteSheetBundle`][spritesheet-bundle] but with two extra components,
+[`Handle<Aseprite>`][aseprite-handle] and [`AsepriteAnimation`][aseprite-anim].
+
 [bevy]: https://bevyengine.org/
 [aseprite]: https://www.aseprite.org/
+[spritesheet-bundle]: https://docs.rs/bevy/latest/bevy/prelude/struct.SpriteSheetBundle.html
+[aseprite-bundle]: https://docs.rs/bevy_mod_aseprite/latest/bevy_mod_aseprite/struct.AsepriteBundle.html
+[aseprite-handle]: https://docs.rs/bevy_mod_aseprite/latest/bevy_mod_aseprite/struct.Aseprite.html
+[aseprite-anim]: https://docs.rs/bevy_mod_aseprite/latest/bevy_mod_aseprite/struct.AsepriteAnimation.html
+
+## Example
+
+<p align="center">
+    <img src="assets/player.gif" width="395" height="250" alt="Aseprite Example" />
+</p>
+
+See [examples/aseprite.rs][example-aseprite] for a complete example, you can run it with:
+
+```ignore
+cargo run --example aseprite
+```
+
+[example-aseprite]: https://github.com/lerouxrgd/bevy_mod_aseprite/blob/master/examples/aseprite.rs
 
 ## Usage
 
-Basic usage:
+Basic usage is as follows:
 
 ```rust,ignore
-commands.spawn(AsepriteBundle {
-    aseprite: asset_server.load("player.ase"),
-    animation: AsepriteAnimation::from("stand"),
-    transform: TransformBundle::default(),
-});
-```
-
-Using `aseprite!` macro for compile time validation:
-
-```rust,ignore
-mod sprites {
-  use bevy_mod_aseprite::aseprite;
-  aseprite!(pub Player, "player.ase");
+fn load_assets(asset_server: Res<AssetServer>, mut aseprite_handles: ResMut<AsepriteHandles>) {
+    let player: Handle<Aseprite> = asset_server.load("player.ase");
+    aseprite_handles.push(player);
 }
 
-commands.spawn(AsepriteBundle {
-    aseprite: asset_server.load(sprites::Player::PATH),
-    animation: AsepriteAnimation::from(sprites::Player::tags::STAND),
-    transform: TransformBundle::default(),
-});
+fn setup(
+    mut commands: Commands,
+    aseprite_handles: Res<AsepriteHandles>,
+    aseprites: Res<Assets<Aseprite>>,
+) {
+    let aseprite_handle = &aseprite_handles[0];
+    let aseprite = aseprites.get(aseprite_handle).unwrap();
+    let animation = AsepriteAnimation::new(aseprite.info(), "idle");
+
+    commands
+        .spawn(Player)
+        .insert(AsepriteBundle {
+            texture_atlas: aseprite.atlas().clone_weak(),
+            sprite: TextureAtlasSprite::new(animation.current_frame()),
+            aseprite: aseprite_handle.clone_weak(),
+            animation,
+            ..default()
+        });
+}
+
+#[derive(Resource, Deref, DerefMut, Default)]
+struct AsepriteHandles(Vec<Handle<Aseprite>>);
 ```
 
-The component `AsepriteAnimation` also exposes methods to get information such as the
-current animation frame (within the tag or not), its duration, or the number of
-remaining frames. This can be useful to transition states at the end of an animation:
+The component [`AsepriteAnimation`][aseprite-anim] also exposes methods to get
+information such as the current animation frame (within the tag or not), its duration,
+or the number of remaining frames. This can be useful to transition states at the end of
+an animation:
 
 ```rust,ignore
 fn transition_player(
@@ -51,11 +81,11 @@ fn transition_player(
     mut ev_player_changed: EventWriter<PlayerChanged>,
 ) {
     let (&player_state, handle, anim) = player_q.single();
-    let Some(aseprite) = aseprites.get(handle) else { return };
+    let aseprite = aseprites.get(handle).unwrap();
     match player_state {
         PlayerState::Attack => {
-            let remaining_frames = anim.remaining_tag_frames(aseprite.info());
-            let frame_finished = anim.frame_finished(aseprite.info(), time.delta());
+            let remaining_frames = anim.remaining_tag_frames(aseprite.info()).unwrap();
+            let frame_finished = anim.frame_finished(time.delta());
             if remaining_frames == 0 && frame_finished {
                 ev_player_changed.send(PlayerChanged::default().new_state(PlayerState::Stand));
             }
