@@ -1,6 +1,8 @@
 use bevy::utils::HashSet;
 use bevy::{asset::LoadState, prelude::*};
-use bevy_mod_aseprite::{Aseprite, AsepriteAnimation, AsepriteBundle, AsepritePlugin, AsepriteTag};
+use bevy_mod_aseprite::{
+    Aseprite, AsepriteAnimation, AsepriteBundle, AsepritePlugin, AsepriteSystems, AsepriteTag,
+};
 
 pub mod sprites {
     use bevy_mod_aseprite::aseprite;
@@ -26,9 +28,9 @@ pub fn main() {
         .add_system_set(SystemSet::on_exit(AppState::Loading).with_system(setup))
         .add_system_set(
             SystemSet::on_update(AppState::Ready)
-                .with_system(keyboard_input)
-                .with_system(transition_player)
-                .with_system(update_player),
+                .with_system(keyboard_input.at_start())
+                .with_system(transition_player.before(AsepriteSystems::Animate))
+                .with_system(update_player.at_end()),
         )
         .run();
 }
