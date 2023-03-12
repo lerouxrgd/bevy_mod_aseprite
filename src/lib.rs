@@ -20,19 +20,19 @@ impl Plugin for AsepritePlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_asset::<Aseprite>()
             .add_asset_loader(loader::AsepriteLoader)
-            .add_system(anim::update_animations.label(AsepriteSystems::Animate))
-            .add_system(anim::refresh_animations.label(AsepriteSystems::Refresh));
+            .add_system(anim::update_animations.in_set(AsepriteSystems::Animate))
+            .add_system(anim::refresh_animations.in_set(AsepriteSystems::Refresh));
     }
 }
 
-#[derive(SystemLabel, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum AsepriteSystems {
     Animate,
     Refresh,
 }
 
 #[derive(Debug, Clone, TypeUuid)]
-#[uuid = "da8830c7-c98a-45e1-9191-1fb9381c9980"]
+#[uuid = "53f56a91-c5d8-4300-8f58-02d5639ca5f3"]
 pub struct Aseprite {
     /// Info stores data such as tags and slices
     info: AsepriteInfo,

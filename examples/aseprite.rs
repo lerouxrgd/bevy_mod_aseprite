@@ -22,21 +22,24 @@ pub fn main() {
         .add_plugin(AsepritePlugin)
         .init_resource::<Events<PlayerChanged>>()
         .init_resource::<AsepriteHandles>()
-        .add_state(AppState::Loading)
-        .add_system_set(SystemSet::on_enter(AppState::Loading).with_system(load_assets))
-        .add_system_set(SystemSet::on_update(AppState::Loading).with_system(check_assets))
-        .add_system_set(SystemSet::on_exit(AppState::Loading).with_system(setup))
-        .add_system_set(
-            SystemSet::on_update(AppState::Ready)
-                .with_system(keyboard_input.at_start())
-                .with_system(transition_player.before(AsepriteSystems::Animate))
-                .with_system(update_player.at_end()),
+        .add_state::<AppState>()
+        .add_system(load_assets.in_schedule(OnEnter(AppState::Loading)))
+        .add_system(check_assets.in_set(OnUpdate(AppState::Loading)))
+        .add_system(setup.in_schedule(OnExit(AppState::Loading)))
+        .add_systems(
+            (
+                keyboard_input,
+                transition_player.before(AsepriteSystems::Animate),
+                update_player,
+            )
+                .in_set(OnUpdate(AppState::Ready)),
         )
         .run();
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(States, Debug, Clone, Default, PartialEq, Eq, Hash)]
 enum AppState {
+    #[default]
     Loading,
     Ready,
 }
@@ -52,12 +55,12 @@ fn load_assets(mut aseprite_handles: ResMut<AsepriteHandles>, asset_server: Res<
 fn check_assets(
     aseprite_handles: ResMut<AsepriteHandles>,
     asset_server: Res<AssetServer>,
-    mut state: ResMut<State<AppState>>,
+    mut state: ResMut<NextState<AppState>>,
 ) {
     if let LoadState::Loaded =
         asset_server.get_group_load_state(aseprite_handles.iter().map(|handle| handle.id()))
     {
-        state.set(AppState::Ready).unwrap();
+        state.set(AppState::Ready);
     }
 }
 

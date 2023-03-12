@@ -40,6 +40,7 @@ impl AssetLoader for AsepriteLoader {
                     Rect::new(min_x as f32, min_y as f32, max_x as f32, max_y as f32)
                 })
                 .collect();
+
             let format = TextureFormat::bevy_default();
             let textures = ase_images
                 .into_iter()
@@ -62,6 +63,7 @@ impl AssetLoader for AsepriteLoader {
             let (frame_width, frame_height) = info.dimensions;
             let atlas_width = frame_width as u32 * info.frame_count as u32;
             let atlas_height = frame_height as u32;
+
             let mut atlas_texture = Image::new(
                 Extent3d {
                     width: atlas_width,
@@ -92,12 +94,11 @@ impl AssetLoader for AsepriteLoader {
             let atlas_texture =
                 load_context.set_labeled_asset("image", LoadedAsset::new(atlas_texture));
 
-            let atlas = TextureAtlas {
-                size: Vec2::new(atlas_width as f32, atlas_height as f32),
-                texture: atlas_texture,
-                textures: rects,
-                texture_handles: None,
-            };
+            let mut atlas = TextureAtlas::new_empty(
+                atlas_texture,
+                Vec2::new(atlas_width as f32, atlas_height as f32),
+            );
+            atlas.textures = rects;
             let atlas = load_context.set_labeled_asset("atlas", LoadedAsset::new(atlas));
 
             let aseprite = Aseprite { info, atlas };
