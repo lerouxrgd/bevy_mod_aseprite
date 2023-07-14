@@ -8,9 +8,9 @@ license = "MIT OR Apache-2.0"
 exclude = ["assets/"]
 
 [dependencies]
-bevy = { version = "0.10", default-features = false, features = ["bevy_render", "bevy_asset", "bevy_sprite"] }
+bevy = { version = "0.11", default-features = false, features = ["bevy_render", "bevy_asset", "bevy_sprite"] }
 bevy_aseprite_derive = "0.3"
 bevy_aseprite_reader = "0.1"
 
 [dev-dependencies]
-bevy = "0.10"
+bevy = "0.11"
