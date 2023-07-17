@@ -1,3 +1,6 @@
+use std::time::Duration;
+
+use bevy::asset::ChangeWatcher;
 use bevy::utils::HashSet;
 use bevy::{asset::LoadState, prelude::*};
 use bevy_mod_aseprite::{
@@ -15,24 +18,25 @@ pub fn main() {
             DefaultPlugins
                 .set(ImagePlugin::default_nearest())
                 .set(AssetPlugin {
-                    watch_for_changes: true,
+                    watch_for_changes: ChangeWatcher::with_delay(Duration::from_millis(200)),
                     ..default()
                 }),
         )
-        .add_plugin(AsepritePlugin)
+        .add_plugins(AsepritePlugin)
         .init_resource::<Events<PlayerChanged>>()
         .init_resource::<AsepriteHandles>()
         .add_state::<AppState>()
-        .add_system(load_assets.in_schedule(OnEnter(AppState::Loading)))
-        .add_system(check_assets.in_set(OnUpdate(AppState::Loading)))
-        .add_system(setup.in_schedule(OnExit(AppState::Loading)))
+        .add_systems(OnEnter(AppState::Loading), load_assets)
+        .add_systems(Update, check_assets.run_if(in_state(AppState::Loading)))
+        .add_systems(OnExit(AppState::Loading), setup)
         .add_systems(
+            Update,
             (
                 keyboard_input,
                 transition_player.before(AsepriteSystems::Animate),
                 update_player,
             )
-                .in_set(OnUpdate(AppState::Ready)),
+                .run_if(in_state(AppState::Ready)),
         )
         .run();
 }
@@ -268,7 +272,7 @@ impl PlayerState {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Event)]
 pub struct PlayerChanged {
     new_state: Option<PlayerState>,
     new_orientation: Option<Orientation>,

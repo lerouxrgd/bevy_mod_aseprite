@@ -5,7 +5,7 @@ mod anim;
 mod loader;
 
 use bevy::prelude::*;
-use bevy::reflect::TypeUuid;
+use bevy::reflect::{TypePath, TypeUuid};
 
 pub use self::anim::{AsepriteAnimation, AsepriteTag};
 pub use bevy_aseprite_derive::aseprite;
@@ -20,8 +20,14 @@ impl Plugin for AsepritePlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_asset::<Aseprite>()
             .add_asset_loader(loader::AsepriteLoader)
-            .add_system(anim::update_animations.in_set(AsepriteSystems::Animate))
-            .add_system(anim::refresh_animations.in_set(AsepriteSystems::Refresh));
+            .add_systems(
+                Update,
+                anim::update_animations.in_set(AsepriteSystems::Animate),
+            )
+            .add_systems(
+                Update,
+                anim::refresh_animations.in_set(AsepriteSystems::Refresh),
+            );
     }
 }
 
@@ -31,7 +37,7 @@ pub enum AsepriteSystems {
     Refresh,
 }
 
-#[derive(Debug, Clone, TypeUuid)]
+#[derive(Debug, Clone, TypeUuid, TypePath)]
 #[uuid = "53f56a91-c5d8-4300-8f58-02d5639ca5f3"]
 pub struct Aseprite {
     /// Info stores data such as tags and slices
