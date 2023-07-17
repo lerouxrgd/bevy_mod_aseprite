@@ -87,7 +87,7 @@ fn transition_player(
             let remaining_frames = anim.remaining_tag_frames(aseprite.info()).unwrap();
             let frame_finished = anim.frame_finished(time.delta());
             if remaining_frames == 0 && frame_finished {
-                ev_player_changed.send(PlayerChanged::default().new_state(PlayerState::Stand));
+                ev_player_changed.send(PlayerState::Stand.into());
             }
         }
         _ => (),
@@ -99,6 +99,7 @@ fn transition_player(
 
 | **bevy** | **bevy_mod_aseprite** |
 |----------|-----------------------|
+| 0.11     | 0.5                   |
 | 0.10     | 0.4                   |
 | 0.9      | 0.2, 0.3              |
 | 0.8      | 0.1                   |

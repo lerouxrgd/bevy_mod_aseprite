@@ -180,7 +180,7 @@ fn transition_player(
             let remaining_frames = anim.remaining_tag_frames(aseprite.info()).unwrap();
             let frame_finished = anim.frame_finished(time.delta());
             if remaining_frames == 0 && frame_finished {
-                ev_player_changed.send(PlayerChanged::default().new_state(PlayerState::Stand));
+                ev_player_changed.send(PlayerState::Stand.into());
             }
         }
         _ => (),
@@ -221,13 +221,13 @@ fn keyboard_input(
             PlayerState::Move => (),
             _ => return,
         }
-        ev_player_changed.send(PlayerChanged::default().new_state(PlayerState::Stand));
+        ev_player_changed.send(PlayerState::Stand.into());
     } else if keyboard_attack_detected(&keys) {
         match *player_state {
             PlayerState::Attack => return,
             _ => (),
         }
-        ev_player_changed.send(PlayerChanged::default().new_state(PlayerState::Attack));
+        ev_player_changed.send(PlayerState::Attack.into());
     }
 }
 
@@ -293,6 +293,12 @@ impl PlayerChanged {
     pub fn new_movements<N: Into<Option<Movements>>>(mut self, new_movements: N) -> Self {
         self.new_movements = new_movements.into();
         self
+    }
+}
+
+impl From<PlayerState> for PlayerChanged {
+    fn from(value: PlayerState) -> Self {
+        Self::default().new_state(value)
     }
 }
 
