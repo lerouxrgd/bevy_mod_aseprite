@@ -1,6 +1,3 @@
-use std::time::Duration;
-
-use bevy::asset::ChangeWatcher;
 use bevy::utils::HashSet;
 use bevy::{asset::LoadState, prelude::*};
 use bevy_mod_aseprite::{
@@ -14,14 +11,7 @@ pub mod sprites {
 
 pub fn main() {
     App::new()
-        .add_plugins(
-            DefaultPlugins
-                .set(ImagePlugin::default_nearest())
-                .set(AssetPlugin {
-                    watch_for_changes: ChangeWatcher::with_delay(Duration::from_millis(200)),
-                    ..default()
-                }),
-        )
+        .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_plugins(AsepritePlugin)
         .init_resource::<Events<PlayerChanged>>()
         .init_resource::<AsepriteHandles>()
@@ -61,11 +51,15 @@ fn check_assets(
     asset_server: Res<AssetServer>,
     mut state: ResMut<NextState<AppState>>,
 ) {
-    if let LoadState::Loaded =
-        asset_server.get_group_load_state(aseprite_handles.iter().map(|handle| handle.id()))
-    {
-        state.set(AppState::Ready);
-    }
+    aseprite_handles
+        .iter()
+        .all(|handle| {
+            matches!(
+                asset_server.get_load_state(handle.id()),
+                Some(LoadState::Loaded)
+            )
+        })
+        .then(|| state.set(AppState::Ready));
 }
 
 fn setup(
@@ -130,7 +124,7 @@ fn update_player(
         new_state,
         new_orientation,
         new_movements,
-    } in ev_player_changed.iter()
+    } in ev_player_changed.read()
     {
         if let Some(new_state) = new_state {
             let info = aseprites.get(aseprite).unwrap().info();

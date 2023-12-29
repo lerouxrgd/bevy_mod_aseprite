@@ -2,6 +2,7 @@
 #![doc = include_str!("../README.md")]
 
 mod anim;
+mod error;
 mod loader;
 
 use bevy::prelude::*;
@@ -13,13 +14,14 @@ pub use bevy_aseprite_reader::{
     raw::{AsepriteAnimationDirection, AsepriteColor, AsepriteNinePatchInfo},
     AsepriteFrameInfo, AsepriteInfo, AsepritePalette, AsepriteSlice,
 };
+pub use error::AsepriteLoaderError;
 
 pub struct AsepritePlugin;
 
 impl Plugin for AsepritePlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_asset::<Aseprite>()
-            .add_asset_loader(loader::AsepriteLoader)
+        app.init_asset::<Aseprite>()
+            .register_asset_loader(loader::AsepriteLoader)
             .add_systems(
                 Update,
                 anim::update_animations.in_set(AsepriteSystems::Animate),
@@ -37,7 +39,7 @@ pub enum AsepriteSystems {
     Refresh,
 }
 
-#[derive(Debug, Clone, TypeUuid, TypePath)]
+#[derive(Debug, Clone, TypeUuid, TypePath, Asset)]
 #[uuid = "53f56a91-c5d8-4300-8f58-02d5639ca5f3"]
 pub struct Aseprite {
     /// Info stores data such as tags and slices
@@ -66,5 +68,6 @@ pub struct AsepriteBundle {
     pub transform: Transform,
     pub global_transform: GlobalTransform,
     pub visibility: Visibility,
-    pub computed_visibility: ComputedVisibility,
+    pub inherited_visibility: InheritedVisibility,
+    pub view_visibility: ViewVisibility,
 }

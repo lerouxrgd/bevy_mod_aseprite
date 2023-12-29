@@ -1,5 +1,5 @@
 use bevy::{
-    asset::{AssetLoader, LoadedAsset},
+    asset::{AssetLoader, AsyncReadExt},
     prelude::*,
     render::{
         render_resource::{Extent3d, TextureDimension, TextureFormat},
@@ -7,21 +7,29 @@ use bevy::{
     },
 };
 
+use crate::error::AsepriteLoaderError;
 use crate::{Aseprite, AsepriteInfo};
 
 #[derive(Debug, Default)]
 pub struct AsepriteLoader;
 
 impl AssetLoader for AsepriteLoader {
+    type Asset = Aseprite;
+    type Settings = ();
+    type Error = AsepriteLoaderError;
+
     fn load<'a>(
         &'a self,
-        bytes: &'a [u8],
+        reader: &'a mut bevy::asset::io::Reader,
+        _settings: &'a Self::Settings,
         load_context: &'a mut bevy::asset::LoadContext,
-    ) -> bevy::asset::BoxedFuture<'a, Result<(), bevy::asset::Error>> {
+    ) -> bevy::utils::BoxedFuture<'a, Result<Self::Asset, Self::Error>> {
         Box::pin(async move {
             debug!("Loading aseprite at {:?}", load_context.path());
 
-            let ase_data = bevy_aseprite_reader::Aseprite::from_bytes(bytes)?;
+            let mut buffer = vec![];
+            reader.read_to_end(&mut buffer).await?;
+            let ase_data = bevy_aseprite_reader::Aseprite::from_bytes(buffer)?;
 
             let frames = ase_data.frames();
             let ase_images = frames
@@ -91,20 +99,16 @@ impl AssetLoader for AsepriteLoader {
                         .copy_from_slice(&texture.data[texture_begin..texture_end]);
                 }
             }
-            let atlas_texture =
-                load_context.set_labeled_asset("image", LoadedAsset::new(atlas_texture));
+            let atlas_texture = load_context.add_labeled_asset("image".into(), atlas_texture);
 
             let mut atlas = TextureAtlas::new_empty(
                 atlas_texture,
                 Vec2::new(atlas_width as f32, atlas_height as f32),
             );
             atlas.textures = rects;
-            let atlas = load_context.set_labeled_asset("atlas", LoadedAsset::new(atlas));
+            let atlas = load_context.add_labeled_asset("atlas".into(), atlas);
 
-            let aseprite = Aseprite { info, atlas };
-            load_context.set_default_asset(LoadedAsset::new(aseprite));
-
-            Ok(())
+            Ok(Aseprite { info, atlas })
         })
     }
 
