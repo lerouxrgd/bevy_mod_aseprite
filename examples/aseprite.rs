@@ -15,7 +15,7 @@ pub fn main() {
         .add_plugins(AsepritePlugin)
         .init_resource::<Events<PlayerChanged>>()
         .init_resource::<AsepriteHandles>()
-        .add_state::<AppState>()
+        .init_state::<AppState>()
         .add_systems(OnEnter(AppState::Loading), load_assets)
         .add_systems(Update, check_assets.run_if(in_state(AppState::Loading)))
         .add_systems(OnExit(AppState::Loading), setup)
@@ -78,12 +78,15 @@ fn setup(
         .insert(PlayerState::Stand)
         .insert(Orientation::Right)
         .insert(AsepriteBundle {
-            texture_atlas: aseprite.atlas().clone_weak(),
-            sprite: TextureAtlasSprite::new(animation.current_frame()),
+            texture: aseprite.texture().clone_weak(),
+            atlas: TextureAtlas {
+                index: animation.current_frame(),
+                layout: aseprite.layout().clone_weak(),
+            },
             aseprite: aseprite_handle.clone_weak(),
             animation,
             transform: Transform {
-                scale: Vec3::splat(1.5),
+                scale: Vec3::splat(2.0),
                 ..default()
             },
             ..default()
@@ -101,7 +104,7 @@ fn update_player(
             &mut PlayerState,
             Option<&Movements>,
             &mut Transform,
-            &mut TextureAtlasSprite,
+            &mut Sprite,
             &Handle<Aseprite>,
             &mut AsepriteAnimation,
             &mut Orientation,
@@ -182,7 +185,7 @@ fn transition_player(
 }
 
 fn keyboard_input(
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     player_q: Query<&PlayerState, With<Player>>,
     mut ev_player_changed: EventWriter<PlayerChanged>,
 ) {
@@ -225,21 +228,21 @@ fn keyboard_input(
     }
 }
 
-fn keyboard_direction_pressed(keys: &Input<KeyCode>) -> bool {
-    keys.pressed(KeyCode::Left)
-        || keys.pressed(KeyCode::Up)
-        || keys.pressed(KeyCode::Down)
-        || keys.pressed(KeyCode::Right)
+fn keyboard_direction_pressed(keys: &ButtonInput<KeyCode>) -> bool {
+    keys.pressed(KeyCode::ArrowLeft)
+        || keys.pressed(KeyCode::ArrowUp)
+        || keys.pressed(KeyCode::ArrowDown)
+        || keys.pressed(KeyCode::ArrowRight)
 }
 
-fn keyboard_direction_just_released(keys: &Input<KeyCode>) -> bool {
-    keys.just_released(KeyCode::Left)
-        || keys.just_released(KeyCode::Up)
-        || keys.just_released(KeyCode::Down)
-        || keys.just_released(KeyCode::Right)
+fn keyboard_direction_just_released(keys: &ButtonInput<KeyCode>) -> bool {
+    keys.just_released(KeyCode::ArrowLeft)
+        || keys.just_released(KeyCode::ArrowUp)
+        || keys.just_released(KeyCode::ArrowDown)
+        || keys.just_released(KeyCode::ArrowRight)
 }
 
-fn keyboard_attack_detected(keys: &Input<KeyCode>) -> bool {
+fn keyboard_attack_detected(keys: &ButtonInput<KeyCode>) -> bool {
     keys.just_pressed(KeyCode::Space)
 }
 
@@ -310,18 +313,18 @@ pub enum Moving {
 pub struct Movements(pub HashSet<Moving>);
 
 impl Movements {
-    pub fn from_keyboard(keys: &Input<KeyCode>) -> Self {
+    pub fn from_keyboard(keys: &ButtonInput<KeyCode>) -> Self {
         let mut movements = HashSet::with_capacity(4);
-        if keys.pressed(KeyCode::Left) {
+        if keys.pressed(KeyCode::ArrowLeft) {
             movements.insert(Moving::Left);
         }
-        if keys.pressed(KeyCode::Up) {
+        if keys.pressed(KeyCode::ArrowUp) {
             movements.insert(Moving::Up);
         }
-        if keys.pressed(KeyCode::Down) {
+        if keys.pressed(KeyCode::ArrowDown) {
             movements.insert(Moving::Down);
         }
-        if keys.pressed(KeyCode::Right) {
+        if keys.pressed(KeyCode::ArrowRight) {
             movements.insert(Moving::Right);
         }
         Self(movements)

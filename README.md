@@ -56,8 +56,11 @@ fn setup(
     commands
         .spawn(Player)
         .insert(AsepriteBundle {
-            texture_atlas: aseprite.atlas().clone_weak(),
-            sprite: TextureAtlasSprite::new(animation.current_frame()),
+            texture: aseprite.texture().clone_weak(),
+            atlas: TextureAtlas {
+                index: animation.current_frame(),
+                layout: aseprite.layout().clone_weak(),
+            },
             aseprite: aseprite_handle.clone_weak(),
             animation,
             ..default()
@@ -99,6 +102,7 @@ fn transition_player(
 
 | **bevy** | **bevy_mod_aseprite** |
 |----------|-----------------------|
+| 0.13     | 0.7                   |
 | 0.12     | 0.6                   |
 | 0.11     | 0.5                   |
 | 0.10     | 0.4                   |

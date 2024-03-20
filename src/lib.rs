@@ -6,7 +6,7 @@ mod error;
 mod loader;
 
 use bevy::prelude::*;
-use bevy::reflect::{TypePath, TypeUuid};
+use bevy::reflect::TypePath;
 
 pub use self::anim::{AsepriteAnimation, AsepriteTag};
 pub use bevy_aseprite_derive::aseprite;
@@ -39,13 +39,14 @@ pub enum AsepriteSystems {
     Refresh,
 }
 
-#[derive(Debug, Clone, TypeUuid, TypePath, Asset)]
-#[uuid = "53f56a91-c5d8-4300-8f58-02d5639ca5f3"]
+#[derive(Debug, Clone, TypePath, Asset)]
 pub struct Aseprite {
     /// Info stores data such as tags and slices
     info: AsepriteInfo,
-    /// Atlas that gets built from the frame info of the Aseprite file
-    atlas: Handle<TextureAtlas>,
+    /// TextureAtlasLayout that gets built from the frame info of the Aseprite file
+    atlas_layout: Handle<TextureAtlasLayout>,
+    ///
+    atlas_texture: Handle<Image>,
 }
 
 impl Aseprite {
@@ -53,8 +54,12 @@ impl Aseprite {
         &self.info
     }
 
-    pub fn atlas(&self) -> &Handle<TextureAtlas> {
-        &self.atlas
+    pub fn layout(&self) -> &Handle<TextureAtlasLayout> {
+        &self.atlas_layout
+    }
+
+    pub fn texture(&self) -> &Handle<Image> {
+        &self.atlas_texture
     }
 }
 
@@ -63,8 +68,9 @@ impl Aseprite {
 pub struct AsepriteBundle {
     pub aseprite: Handle<Aseprite>,
     pub animation: AsepriteAnimation,
-    pub sprite: TextureAtlasSprite,
-    pub texture_atlas: Handle<TextureAtlas>,
+    pub texture: Handle<Image>,
+    pub sprite: Sprite,
+    pub atlas: TextureAtlas,
     pub transform: Transform,
     pub global_transform: GlobalTransform,
     pub visibility: Visibility,

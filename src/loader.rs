@@ -2,6 +2,7 @@ use bevy::{
     asset::{AssetLoader, AsyncReadExt},
     prelude::*,
     render::{
+        render_asset::RenderAssetUsages,
         render_resource::{Extent3d, TextureDimension, TextureFormat},
         texture::{BevyDefault, TextureFormatPixelInfo},
     },
@@ -62,6 +63,7 @@ impl AssetLoader for AsepriteLoader {
                         TextureDimension::D2,
                         texture.into_raw(),
                         format,
+                        RenderAssetUsages::default(),
                     )
                 })
                 .collect::<Vec<_>>();
@@ -81,6 +83,7 @@ impl AssetLoader for AsepriteLoader {
                 TextureDimension::D2,
                 vec![0; format.pixel_size() * (atlas_width * atlas_height) as usize],
                 format,
+                RenderAssetUsages::default(),
             );
             for (i, texture) in textures.into_iter().enumerate() {
                 let rect_width = frame_width as usize;
@@ -101,14 +104,16 @@ impl AssetLoader for AsepriteLoader {
             }
             let atlas_texture = load_context.add_labeled_asset("image".into(), atlas_texture);
 
-            let mut atlas = TextureAtlas::new_empty(
-                atlas_texture,
-                Vec2::new(atlas_width as f32, atlas_height as f32),
-            );
-            atlas.textures = rects;
-            let atlas = load_context.add_labeled_asset("atlas".into(), atlas);
+            let mut atlas_layout =
+                TextureAtlasLayout::new_empty(Vec2::new(atlas_width as f32, atlas_height as f32));
+            atlas_layout.textures = rects;
+            let atlas_layout = load_context.add_labeled_asset("atlas".into(), atlas_layout);
 
-            Ok(Aseprite { info, atlas })
+            Ok(Aseprite {
+                info,
+                atlas_texture,
+                atlas_layout,
+            })
         })
     }
 

@@ -216,19 +216,12 @@ impl AsepriteAnimation {
 pub fn update_animations(
     time: Res<Time>,
     aseprites: Res<Assets<Aseprite>>,
-    mut aseprites_query: Query<(
-        &Handle<Aseprite>,
-        &mut AsepriteAnimation,
-        &mut TextureAtlasSprite,
-    )>,
+    mut aseprites_query: Query<(&Handle<Aseprite>, &mut AsepriteAnimation, &mut TextureAtlas)>,
 ) {
     for (handle, mut animation, mut sprite) in aseprites_query.iter_mut() {
-        let aseprite = match aseprites.get(handle) {
-            Some(aseprite) => aseprite,
-            None => {
-                error!("Aseprite handle {handle:?} is invalid");
-                continue;
-            }
+        let Some(aseprite) = aseprites.get(handle) else {
+            error!("Aseprite handle {handle:?} is invalid");
+            continue;
         };
         if animation.update(aseprite.info(), time.delta()) {
             sprite.index = animation.current_frame();
@@ -237,10 +230,7 @@ pub fn update_animations(
 }
 
 pub fn refresh_animations(
-    mut aseprites_query: Query<
-        (&AsepriteAnimation, &mut TextureAtlasSprite),
-        Changed<AsepriteAnimation>,
-    >,
+    mut aseprites_query: Query<(&AsepriteAnimation, &mut TextureAtlas), Changed<AsepriteAnimation>>,
 ) {
     for (animation, mut sprite) in aseprites_query.iter_mut() {
         sprite.index = animation.current_frame();
