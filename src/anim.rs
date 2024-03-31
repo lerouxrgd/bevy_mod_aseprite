@@ -211,6 +211,10 @@ impl AsepriteAnimation {
             self.pause()
         }
     }
+
+    pub fn tag(&self) -> Option<&str> {
+        self.tag.as_deref()
+    }
 }
 
 pub fn update_animations(
