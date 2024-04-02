@@ -161,6 +161,15 @@ impl AsepriteAnimation {
         })
     }
 
+    /// Set current frame relative index within the current tag
+    pub fn set_current_tag_frame(&mut self, info: &AsepriteInfo, frame: usize) {
+        let Some(tag) = self.tag.as_ref().and_then(|tag| info.tags.get(tag)) else {
+            return;
+        };
+
+        self.current_frame = (tag.frames.start as usize + frame).max(tag.frames.end as usize - 1);
+    }
+
     /// The number of remaning frames in the current tag
     pub fn remaining_tag_frames(&self, info: &AsepriteInfo) -> Option<usize> {
         self.tag.as_ref().and_then(|tag| {
