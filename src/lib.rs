@@ -45,7 +45,7 @@ pub struct Aseprite {
     info: AsepriteInfo,
     /// TextureAtlasLayout that gets built from the frame info of the Aseprite file
     atlas_layout: Handle<TextureAtlasLayout>,
-    ///
+    /// The actual atlas image
     atlas_texture: Handle<Image>,
 }
 

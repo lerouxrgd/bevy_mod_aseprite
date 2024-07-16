@@ -6,6 +6,7 @@ use bevy::{
         render_resource::{Extent3d, TextureDimension, TextureFormat},
         texture::{BevyDefault, TextureFormatPixelInfo},
     },
+    utils::ConditionalSendFuture,
 };
 
 use crate::error::AsepriteLoaderError;
@@ -24,7 +25,7 @@ impl AssetLoader for AsepriteLoader {
         reader: &'a mut bevy::asset::io::Reader,
         _settings: &'a Self::Settings,
         load_context: &'a mut bevy::asset::LoadContext,
-    ) -> bevy::utils::BoxedFuture<'a, Result<Self::Asset, Self::Error>> {
+    ) -> impl ConditionalSendFuture<Output = Result<Self::Asset, Self::Error>> {
         Box::pin(async move {
             debug!("Loading aseprite at {:?}", load_context.path());
 
@@ -38,7 +39,7 @@ impl AssetLoader for AsepriteLoader {
                 .get_images()
                 .unwrap();
 
-            let rects: Vec<Rect> = ase_images
+            let rects: Vec<URect> = ase_images
                 .iter()
                 .enumerate()
                 .map(|(i, texture)| {
@@ -46,7 +47,7 @@ impl AssetLoader for AsepriteLoader {
                     let min_y = 0;
                     let max_x = (i + 1) as u32 * texture.width();
                     let max_y = texture.height();
-                    Rect::new(min_x as f32, min_y as f32, max_x as f32, max_y as f32)
+                    URect::new(min_x, min_y, max_x, max_y)
                 })
                 .collect();
 
@@ -105,7 +106,7 @@ impl AssetLoader for AsepriteLoader {
             let atlas_texture = load_context.add_labeled_asset("image".into(), atlas_texture);
 
             let mut atlas_layout =
-                TextureAtlasLayout::new_empty(Vec2::new(atlas_width as f32, atlas_height as f32));
+                TextureAtlasLayout::new_empty(UVec2::new(atlas_width, atlas_height));
             atlas_layout.textures = rects;
             let atlas_layout = load_context.add_labeled_asset("atlas".into(), atlas_layout);
 
