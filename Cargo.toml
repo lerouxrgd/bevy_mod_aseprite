@@ -1,6 +1,6 @@
 [package]
 name = "bevy_mod_aseprite"
-version = "0.8.0"
+version = "0.8.1"
 edition = "2021"
 description = "A plugin for using Aseprite animations in Bevy"
 repository = "https://github.com/lerouxrgd/bevy_mod_aseprite"
