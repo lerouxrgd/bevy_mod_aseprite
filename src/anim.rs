@@ -167,7 +167,7 @@ impl AsepriteAnimation {
             return;
         };
 
-        self.current_frame = (tag.frames.start as usize + frame).max(tag.frames.end as usize - 1);
+        self.current_frame = (tag.frames.start as usize + frame).min(tag.frames.end as usize - 1);
     }
 
     /// The number of remaning frames in the current tag
