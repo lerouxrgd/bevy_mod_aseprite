@@ -3,9 +3,9 @@ use std::time::Duration;
 use bevy::prelude::*;
 use bevy_aseprite_reader::{raw::AsepriteAnimationDirection, AsepriteInfo};
 
-use crate::Aseprite;
+use crate::{Aseprite, AsepriteAsset};
 
-#[derive(Component, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct AsepriteAnimation {
     tag: Option<String>,
     current_frame: usize,
@@ -228,25 +228,37 @@ impl AsepriteAnimation {
 
 pub fn update_animations(
     time: Res<Time>,
-    aseprites: Res<Assets<Aseprite>>,
-    mut aseprites_query: Query<(&Handle<Aseprite>, &mut AsepriteAnimation, &mut TextureAtlas)>,
+    aseprites: Res<Assets<AsepriteAsset>>,
+    mut aseprites_query: Query<(&mut Aseprite, &mut Sprite)>,
 ) {
-    for (handle, mut animation, mut sprite) in aseprites_query.iter_mut() {
-        let Some(aseprite) = aseprites.get(handle) else {
-            error!("Aseprite handle {handle:?} is invalid");
+    for (mut ase, mut sprite) in aseprites_query.iter_mut() {
+        let Some(ase_asset) = aseprites.get(&ase.asset) else {
+            error!("Aseprite handle {:?}: no corresponding asset", ase.asset);
             continue;
         };
-        if animation.update(aseprite.info(), time.delta()) {
-            sprite.index = animation.current_frame();
+        if ase.anim.update(ase_asset.info(), time.delta()) {
+            if let Some(atlas) = sprite.texture_atlas.as_mut() {
+                atlas.index = ase.anim.current_frame();
+            } else {
+                error!(
+                    "Aseprite handle {:?}: sprite has no texture_atlas",
+                    ase.asset
+                );
+            }
         }
     }
 }
 
-pub fn refresh_animations(
-    mut aseprites_query: Query<(&AsepriteAnimation, &mut TextureAtlas), Changed<AsepriteAnimation>>,
-) {
-    for (animation, mut sprite) in aseprites_query.iter_mut() {
-        sprite.index = animation.current_frame();
+pub fn refresh_animations(mut aseprites_query: Query<(&Aseprite, &mut Sprite), Changed<Aseprite>>) {
+    for (ase, mut sprite) in aseprites_query.iter_mut() {
+        if let Some(atlas) = sprite.texture_atlas.as_mut() {
+            atlas.index = ase.anim.current_frame();
+        } else {
+            error!(
+                "Aseprite handle {:?}: sprite has no texture_atlas",
+                ase.asset
+            );
+        }
     }
 }
 

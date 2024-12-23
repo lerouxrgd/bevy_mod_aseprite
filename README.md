@@ -9,15 +9,16 @@
 
 A plugin for using [Aseprite][] animations in [Bevy][].
 
-The [`AsepriteBundle`][aseprite-bundle] is composed of the same fields as the
-[`SpriteSheetBundle`][spritesheet-bundle] but with two extra components,
-[`Handle<Aseprite>`][aseprite-handle] and [`AsepriteAnimation`][aseprite-anim].
+The [`Aseprite`][aseprite-compo] component **requires** Bevy's [`Sprite`][sprite-compo] and
+contains two fields:
+ * asset: [`Handle<AsepriteAsset>`][aseprite-asset]
+ * anim: [`AsepriteAnimation`][aseprite-anim].
 
 [bevy]: https://bevyengine.org/
 [aseprite]: https://www.aseprite.org/
-[spritesheet-bundle]: https://docs.rs/bevy/latest/bevy/prelude/struct.SpriteSheetBundle.html
-[aseprite-bundle]: https://docs.rs/bevy_mod_aseprite/latest/bevy_mod_aseprite/struct.AsepriteBundle.html
-[aseprite-handle]: https://docs.rs/bevy_mod_aseprite/latest/bevy_mod_aseprite/struct.Aseprite.html
+[sprite-compo]: https://docs.rs/bevy/latest/bevy/sprite/struct.Sprite.html
+[aseprite-compo]: https://docs.rs/bevy_mod_aseprite/latest/bevy_mod_aseprite/struct.Aseprite.html
+[aseprite-asset]: https://docs.rs/bevy_mod_aseprite/latest/bevy_mod_aseprite/struct.AsepriteAsset.html
 [aseprite-anim]: https://docs.rs/bevy_mod_aseprite/latest/bevy_mod_aseprite/struct.AsepriteAnimation.html
 
 ## Example
@@ -39,61 +40,60 @@ cargo run --example aseprite
 Basic usage is as follows:
 
 ```rust,ignore
-fn load_assets(asset_server: Res<AssetServer>, mut aseprite_handles: ResMut<AsepriteHandles>) {
-    let player: Handle<Aseprite> = asset_server.load("player.ase");
-    aseprite_handles.push(player);
+fn load_assets(asset_server: Res<AssetServer>, mut ase_handles: ResMut<AsepriteHandles>) {
+    let player = asset_server.load("player.ase");
+    ase_handles.push(player);
 }
 
 fn setup(
     mut commands: Commands,
-    aseprite_handles: Res<AsepriteHandles>,
-    aseprites: Res<Assets<Aseprite>>,
+    ase_handles: Res<AsepriteHandles>,
+    ase_assets: Res<Assets<AsepriteAsset>>,
 ) {
-    let aseprite_handle = &aseprite_handles[0];
-    let aseprite = aseprites.get(aseprite_handle).unwrap();
-    let animation = AsepriteAnimation::new(aseprite.info(), "idle");
-
-    commands
-        .spawn(Player)
-        .insert(AsepriteBundle {
-            texture: aseprite.texture().clone_weak(),
-            atlas: TextureAtlas {
-                index: animation.current_frame(),
-                layout: aseprite.layout().clone_weak(),
-            },
-            aseprite: aseprite_handle.clone_weak(),
-            animation,
+    let ase_handle = &ase_handles[0];
+    let ase_asset = ase_assets.get(ase_handle).unwrap();
+    let anim = AsepriteAnimation::new(ase_asset.info(), "idle");
+    commands.spawn((
+        Player,
+        Sprite {
+            image: ase_asset.texture().clone_weak(),
+            texture_atlas: Some(TextureAtlas {
+                index: anim.current_frame(),
+                layout: ase_asset.layout().clone_weak(),
+            }),
             ..default()
-        });
+        },
+        Aseprite {
+            anim,
+            asset: ase_handle.clone_weak(),
+        },
+    ));
 }
 
 #[derive(Resource, Deref, DerefMut, Default)]
-struct AsepriteHandles(Vec<Handle<Aseprite>>);
+struct AsepriteHandles(Vec<Handle<AsepriteAsset>>);
 ```
 
-The component [`AsepriteAnimation`][aseprite-anim] also exposes methods to get
-information such as the current animation frame (within the tag or not), its duration,
-or the number of remaining frames. This can be useful to transition states at the end of
-an animation:
+The [`AsepriteAnimation`][aseprite-anim] struct also exposes methods to get information
+such as the current animation frame (within a tag or not), its duration, and the number
+of remaining frames. This can be useful to transition states at the end of an animation:
 
 ```rust,ignore
 fn transition_player(
     time: Res<Time>,
-    player_q: Query<(&PlayerState, &Handle<Aseprite>, &AsepriteAnimation), With<Player>>,
-    aseprites: Res<Assets<Aseprite>>,
+    player_q: Query<(&PlayerState, &Aseprite), With<Player>>,
+    aseprites: Res<Assets<AsepriteAsset>>,
     mut ev_player_changed: EventWriter<PlayerChanged>,
 ) {
-    let (&player_state, handle, anim) = player_q.single();
-    let aseprite = aseprites.get(handle).unwrap();
-    match player_state {
-        PlayerState::Attack => {
-            let remaining_frames = anim.remaining_tag_frames(aseprite.info()).unwrap();
-            let frame_finished = anim.frame_finished(time.delta());
-            if remaining_frames == 0 && frame_finished {
-                ev_player_changed.send(PlayerState::Stand.into());
-            }
+    let (&player_state, ase) = player_q.single();
+    let ase_asset = aseprites.get(&ase.asset).unwrap();
+    // Change the player state to idle at the end of the attack animation
+    if let PlayerState::Attack = player_state {
+        let remaining_frames = ase.anim.remaining_tag_frames(ase_asset.info()).unwrap();
+        let frame_finished = ase.anim.frame_finished(time.delta());
+        if remaining_frames == 0 && frame_finished {
+            ev_player_changed.send(PlayerState::Stand.into());
         }
-        _ => (),
     }
 }
 ```
@@ -102,6 +102,7 @@ fn transition_player(
 
 | **bevy** | **bevy_mod_aseprite** |
 |----------|-----------------------|
+| 0.15     | 0.9                   |
 | 0.14     | 0.8                   |
 | 0.13     | 0.7                   |
 | 0.12     | 0.6                   |

@@ -1,30 +1,30 @@
 use bevy::{
-    asset::{AssetLoader, AsyncReadExt},
+    asset::AssetLoader,
+    image::TextureFormatPixelInfo,
     prelude::*,
     render::{
         render_asset::RenderAssetUsages,
         render_resource::{Extent3d, TextureDimension, TextureFormat},
-        texture::{BevyDefault, TextureFormatPixelInfo},
     },
     utils::ConditionalSendFuture,
 };
 
 use crate::error::AsepriteLoaderError;
-use crate::{Aseprite, AsepriteInfo};
+use crate::{AsepriteAsset, AsepriteInfo};
 
 #[derive(Debug, Default)]
 pub struct AsepriteLoader;
 
 impl AssetLoader for AsepriteLoader {
-    type Asset = Aseprite;
+    type Asset = AsepriteAsset;
     type Settings = ();
     type Error = AsepriteLoaderError;
 
-    fn load<'a>(
-        &'a self,
-        reader: &'a mut bevy::asset::io::Reader,
-        _settings: &'a Self::Settings,
-        load_context: &'a mut bevy::asset::LoadContext,
+    fn load(
+        &self,
+        reader: &mut dyn bevy::asset::io::Reader,
+        _settings: &Self::Settings,
+        load_context: &mut bevy::asset::LoadContext,
     ) -> impl ConditionalSendFuture<Output = Result<Self::Asset, Self::Error>> {
         Box::pin(async move {
             debug!("Loading aseprite at {:?}", load_context.path());
@@ -110,7 +110,7 @@ impl AssetLoader for AsepriteLoader {
             atlas_layout.textures = rects;
             let atlas_layout = load_context.add_labeled_asset("atlas".into(), atlas_layout);
 
-            Ok(Aseprite {
+            Ok(AsepriteAsset {
                 info,
                 atlas_texture,
                 atlas_layout,

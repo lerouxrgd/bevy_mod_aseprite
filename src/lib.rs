@@ -20,7 +20,7 @@ pub struct AsepritePlugin;
 
 impl Plugin for AsepritePlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.init_asset::<Aseprite>()
+        app.init_asset::<AsepriteAsset>()
             .register_asset_loader(loader::AsepriteLoader)
             .add_systems(
                 Update,
@@ -40,7 +40,7 @@ pub enum AsepriteSystems {
 }
 
 #[derive(Debug, Clone, TypePath, Asset)]
-pub struct Aseprite {
+pub struct AsepriteAsset {
     /// Info stores data such as tags and slices
     info: AsepriteInfo,
     /// TextureAtlasLayout that gets built from the frame info of the Aseprite file
@@ -49,7 +49,7 @@ pub struct Aseprite {
     atlas_texture: Handle<Image>,
 }
 
-impl Aseprite {
+impl AsepriteAsset {
     pub fn info(&self) -> &AsepriteInfo {
         &self.info
     }
@@ -63,17 +63,10 @@ impl Aseprite {
     }
 }
 
-/// A Bundle of components for drawing sprites from an Aseprite animation
-#[derive(Default, Bundle)]
-pub struct AsepriteBundle {
-    pub aseprite: Handle<Aseprite>,
-    pub animation: AsepriteAnimation,
-    pub texture: Handle<Image>,
-    pub sprite: Sprite,
-    pub atlas: TextureAtlas,
-    pub transform: Transform,
-    pub global_transform: GlobalTransform,
-    pub visibility: Visibility,
-    pub inherited_visibility: InheritedVisibility,
-    pub view_visibility: ViewVisibility,
+/// A component for drawing sprites from an Aseprite animation
+#[derive(Component, Default)]
+#[require(Sprite)]
+pub struct Aseprite {
+    pub asset: Handle<AsepriteAsset>,
+    pub anim: AsepriteAnimation,
 }
