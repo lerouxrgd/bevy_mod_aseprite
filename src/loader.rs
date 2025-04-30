@@ -1,12 +1,13 @@
 use bevy::{
     asset::AssetLoader,
     image::TextureFormatPixelInfo,
+    log,
     prelude::*,
     render::{
         render_asset::RenderAssetUsages,
         render_resource::{Extent3d, TextureDimension, TextureFormat},
     },
-    utils::ConditionalSendFuture,
+    tasks::{ConditionalSendFuture, futures_lite::io},
 };
 
 use crate::error::AsepriteLoaderError;
@@ -27,17 +28,14 @@ impl AssetLoader for AsepriteLoader {
         load_context: &mut bevy::asset::LoadContext,
     ) -> impl ConditionalSendFuture<Output = Result<Self::Asset, Self::Error>> {
         Box::pin(async move {
-            debug!("Loading aseprite at {:?}", load_context.path());
+            log::debug!("Loading aseprite at {:?}", load_context.path());
 
             let mut buffer = vec![];
             reader.read_to_end(&mut buffer).await?;
             let ase_data = bevy_aseprite_reader::Aseprite::from_bytes(buffer)?;
 
             let frames = ase_data.frames();
-            let ase_images = frames
-                .get_for(&(0..frames.count() as u16))
-                .get_images()
-                .unwrap();
+            let ase_images = frames.get_for(&(0..frames.count() as u16)).get_images()?;
 
             let rects: Vec<URect> = ase_images
                 .iter()
@@ -99,8 +97,19 @@ impl AssetLoader for AsepriteLoader {
                     let end = begin + rect_width * format_size;
                     let texture_begin = texture_y * rect_width * format_size;
                     let texture_end = texture_begin + rect_width * format_size;
-                    atlas_texture.data[begin..end]
-                        .copy_from_slice(&texture.data[texture_begin..texture_end]);
+                    let atlas_data = atlas_texture.data.as_mut().ok_or_else(|| {
+                        AsepriteLoaderError::Io(io::Error::new(
+                            io::ErrorKind::Other,
+                            "No atlas data",
+                        ))
+                    })?;
+                    let image_data = texture.data.as_ref().ok_or_else(|| {
+                        AsepriteLoaderError::Io(io::Error::new(
+                            io::ErrorKind::Other,
+                            "No image data",
+                        ))
+                    })?;
+                    atlas_data[begin..end].copy_from_slice(&image_data[texture_begin..texture_end]);
                 }
             }
             let atlas_texture = load_context.add_labeled_asset("image".into(), atlas_texture);

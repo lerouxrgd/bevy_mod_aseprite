@@ -1,5 +1,4 @@
-use bevy::utils::HashSet;
-use bevy::{asset::LoadState, prelude::*};
+use bevy::{asset::LoadState, platform::collections::HashSet, prelude::*};
 use bevy_mod_aseprite::{
     Aseprite, AsepriteAnimation, AsepriteAsset, AsepritePlugin, AsepriteSystems, AsepriteTag,
 };
@@ -112,7 +111,7 @@ fn update_player(
         ),
         With<Player>,
     >,
-) {
+) -> Result {
     let (
         player,
         mut player_state,
@@ -121,7 +120,7 @@ fn update_player(
         mut sprite,
         mut aseprite,
         mut orientation,
-    ) = player_q.single_mut();
+    ) = player_q.single_mut()?;
 
     for PlayerChanged {
         new_state,
@@ -162,6 +161,8 @@ fn update_player(
             }
         }
     }
+
+    Ok(())
 }
 
 fn transition_player(
@@ -169,24 +170,25 @@ fn transition_player(
     player_q: Query<(&PlayerState, &Aseprite), With<Player>>,
     aseprites: Res<Assets<AsepriteAsset>>,
     mut ev_player_changed: EventWriter<PlayerChanged>,
-) {
-    let (&player_state, ase) = player_q.single();
+) -> Result {
+    let (&player_state, ase) = player_q.single()?;
     let ase_asset = aseprites.get(&ase.asset).unwrap();
     if let PlayerState::Attack = player_state {
         let remaining_frames = ase.anim.remaining_tag_frames(ase_asset.info()).unwrap();
         let frame_finished = ase.anim.frame_finished(time.delta());
         if remaining_frames == 0 && frame_finished {
-            ev_player_changed.send(PlayerState::Stand.into());
+            ev_player_changed.write(PlayerState::Stand.into());
         }
     }
+    Ok(())
 }
 
 fn keyboard_input(
     keys: Res<ButtonInput<KeyCode>>,
     player_q: Query<&PlayerState, With<Player>>,
     mut ev_player_changed: EventWriter<PlayerChanged>,
-) {
-    let player_state = player_q.single();
+) -> Result {
+    let player_state = player_q.single()?;
 
     if keyboard_direction_pressed(&keys) && !keyboard_attack_detected(&keys) {
         match *player_state {
@@ -194,14 +196,14 @@ fn keyboard_input(
             PlayerState::Move => {
                 let movements = Movements::from_keyboard(&keys);
                 let new_orientation = Orientation::from_movements(&movements);
-                ev_player_changed.send(
+                ev_player_changed.write(
                     PlayerChanged::default()
                         .new_movements(movements)
                         .new_orientation(new_orientation),
                 );
             }
             PlayerState::Stand => {
-                ev_player_changed.send(
+                ev_player_changed.write(
                     PlayerChanged::default()
                         .new_state(PlayerState::Move)
                         .new_movements(Movements::from_keyboard(&keys)),
@@ -211,15 +213,16 @@ fn keyboard_input(
     } else if keyboard_direction_just_released(&keys) {
         match *player_state {
             PlayerState::Move => (),
-            _ => return,
+            _ => return Ok(()),
         }
-        ev_player_changed.send(PlayerState::Stand.into());
+        ev_player_changed.write(PlayerState::Stand.into());
     } else if keyboard_attack_detected(&keys) {
         if let PlayerState::Attack = *player_state {
-            return;
+            return Ok(());
         }
-        ev_player_changed.send(PlayerState::Attack.into());
+        ev_player_changed.write(PlayerState::Attack.into());
     }
+    Ok(())
 }
 
 fn keyboard_direction_pressed(keys: &ButtonInput<KeyCode>) -> bool {

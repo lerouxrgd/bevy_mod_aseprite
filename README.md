@@ -84,8 +84,8 @@ fn transition_player(
     player_q: Query<(&PlayerState, &Aseprite), With<Player>>,
     aseprites: Res<Assets<AsepriteAsset>>,
     mut ev_player_changed: EventWriter<PlayerChanged>,
-) {
-    let (&player_state, ase) = player_q.single();
+) -> Result {
+    let (&player_state, ase) = player_q.single()?;
     let ase_asset = aseprites.get(&ase.asset).unwrap();
     // Change the player state to idle at the end of the attack animation
     if let PlayerState::Attack = player_state {
@@ -95,6 +95,7 @@ fn transition_player(
             ev_player_changed.send(PlayerState::Stand.into());
         }
     }
+    Ok(())
 }
 ```
 
@@ -102,6 +103,7 @@ fn transition_player(
 
 | **bevy** | **bevy_mod_aseprite** |
 |----------|-----------------------|
+| 0.16     | 0.10                  |
 | 0.15     | 0.9                   |
 | 0.14     | 0.8                   |
 | 0.13     | 0.7                   |
