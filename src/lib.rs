@@ -11,8 +11,8 @@ use bevy::reflect::TypePath;
 pub use self::anim::{AsepriteAnimation, AsepriteTag};
 pub use bevy_aseprite_derive::aseprite;
 pub use bevy_aseprite_reader::{
-    raw::{AsepriteAnimationDirection, AsepriteColor, AsepriteNinePatchInfo},
     AsepriteFrameInfo, AsepriteInfo, AsepritePalette, AsepriteSlice,
+    raw::{AsepriteAnimationDirection, AsepriteColor, AsepriteNinePatchInfo},
 };
 pub use error::AsepriteLoaderError;
 
