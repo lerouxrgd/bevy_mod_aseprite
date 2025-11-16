@@ -56,16 +56,16 @@ fn setup(
     commands.spawn((
         Player,
         Sprite {
-            image: ase_asset.texture().clone_weak(),
+            image: ase_asset.texture().clone(),
             texture_atlas: Some(TextureAtlas {
                 index: anim.current_frame(),
-                layout: ase_asset.layout().clone_weak(),
+                layout: ase_asset.layout().clone(),
             }),
             ..default()
         },
         Aseprite {
             anim,
-            asset: ase_handle.clone_weak(),
+            asset: ase_handle.clone(),
         },
     ));
 }
@@ -83,7 +83,7 @@ fn transition_player(
     time: Res<Time>,
     player_q: Query<(&PlayerState, &Aseprite), With<Player>>,
     aseprites: Res<Assets<AsepriteAsset>>,
-    mut ev_player_changed: EventWriter<PlayerChanged>,
+    mut ev_player_changed: MessageWriter<PlayerChanged>,
 ) -> Result {
     let (&player_state, ase) = player_q.single()?;
     let ase_asset = aseprites.get(&ase.asset).unwrap();
@@ -103,6 +103,7 @@ fn transition_player(
 
 | **bevy** | **bevy_mod_aseprite** |
 |----------|-----------------------|
+| 0.17     | 0.11                  |
 | 0.16     | 0.10                  |
 | 0.15     | 0.9                   |
 | 0.14     | 0.8                   |

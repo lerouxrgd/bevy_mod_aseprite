@@ -63,7 +63,7 @@ impl AsepriteAnimation {
         }
 
         self.current_timer.tick(dt);
-        if self.current_timer.finished() {
+        if self.current_timer.is_finished() {
             self.next_frame(info);
             self.current_timer = Timer::from_seconds(
                 self.current_frame_duration(info).as_secs_f32(),
@@ -118,10 +118,10 @@ impl AsepriteAnimation {
                             }
                         } else {
                             let next_frame = self.current_frame.checked_sub(1);
-                            if let Some(next_frame) = next_frame {
-                                if tag.frames.contains(&(next_frame as u16)) {
-                                    self.current_frame = next_frame
-                                }
+                            if let Some(next_frame) = next_frame
+                                && tag.frames.contains(&(next_frame as u16))
+                            {
+                                self.current_frame = next_frame
                             }
                             self.current_frame += 1;
                             self.forward = true;
@@ -205,7 +205,7 @@ impl AsepriteAnimation {
 
     /// Returns whether the animation is paused
     pub fn is_paused(&self) -> bool {
-        self.current_timer.paused()
+        self.current_timer.is_paused()
     }
 
     /// Returns whether the animation is playing

@@ -4,6 +4,7 @@ use bevy_aseprite_reader as reader;
 pub enum AsepriteLoaderError {
     Aseprite(reader::error::AsepriteError),
     Io(std::io::Error),
+    TextureAccess(bevy::image::TextureAccessError),
 }
 
 impl From<reader::error::AsepriteError> for AsepriteLoaderError {
@@ -15,6 +16,12 @@ impl From<reader::error::AsepriteError> for AsepriteLoaderError {
 impl From<std::io::Error> for AsepriteLoaderError {
     fn from(value: std::io::Error) -> Self {
         Self::Io(value)
+    }
+}
+
+impl From<bevy::image::TextureAccessError> for AsepriteLoaderError {
+    fn from(value: bevy::image::TextureAccessError) -> Self {
+        Self::TextureAccess(value)
     }
 }
 

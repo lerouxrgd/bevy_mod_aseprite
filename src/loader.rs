@@ -1,14 +1,10 @@
-use bevy::{
-    asset::AssetLoader,
-    image::TextureFormatPixelInfo,
-    log,
-    prelude::*,
-    render::{
-        render_asset::RenderAssetUsages,
-        render_resource::{Extent3d, TextureDimension, TextureFormat},
-    },
-    tasks::{ConditionalSendFuture, futures_lite::io},
-};
+use bevy::asset::{AssetLoader, RenderAssetUsages};
+use bevy::image::TextureFormatPixelInfo;
+use bevy::log;
+use bevy::prelude::*;
+use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
+use bevy::tasks::ConditionalSendFuture;
+use bevy::tasks::futures_lite::io;
 
 use crate::error::AsepriteLoaderError;
 use crate::{AsepriteAsset, AsepriteInfo};
@@ -80,7 +76,7 @@ impl AssetLoader for AsepriteLoader {
                     depth_or_array_layers: 1,
                 },
                 TextureDimension::D2,
-                vec![0; format.pixel_size() * (atlas_width * atlas_height) as usize],
+                vec![0; format.pixel_size()? * (atlas_width * atlas_height) as usize],
                 format,
                 RenderAssetUsages::default(),
             );
@@ -90,7 +86,7 @@ impl AssetLoader for AsepriteLoader {
                 let rect_x = i * frame_width as usize;
                 let rect_y = 0;
                 let atlas_width = atlas_width as usize;
-                let format_size = format.pixel_size();
+                let format_size = format.pixel_size()?;
 
                 for (texture_y, bound_y) in (rect_y..rect_y + rect_height).enumerate() {
                     let begin = (bound_y * atlas_width + rect_x) * format_size;
@@ -98,16 +94,10 @@ impl AssetLoader for AsepriteLoader {
                     let texture_begin = texture_y * rect_width * format_size;
                     let texture_end = texture_begin + rect_width * format_size;
                     let atlas_data = atlas_texture.data.as_mut().ok_or_else(|| {
-                        AsepriteLoaderError::Io(io::Error::new(
-                            io::ErrorKind::Other,
-                            "No atlas data",
-                        ))
+                        AsepriteLoaderError::Io(io::Error::other("No atlas data"))
                     })?;
                     let image_data = texture.data.as_ref().ok_or_else(|| {
-                        AsepriteLoaderError::Io(io::Error::new(
-                            io::ErrorKind::Other,
-                            "No image data",
-                        ))
+                        AsepriteLoaderError::Io(io::Error::other("No image data"))
                     })?;
                     atlas_data[begin..end].copy_from_slice(&image_data[texture_begin..texture_end]);
                 }

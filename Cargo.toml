@@ -1,6 +1,6 @@
 [package]
 name = "bevy_mod_aseprite"
-version = "0.10.0"
+version = "0.11.0"
 edition = "2024"
 description = "A plugin for using Aseprite animations in Bevy"
 repository = "https://github.com/lerouxrgd/bevy_mod_aseprite"
@@ -8,16 +8,13 @@ license = "MIT OR Apache-2.0"
 exclude = ["assets/"]
 
 [dependencies]
-bevy = { version = "0.16", default-features = false, features = [
-  "bevy_asset",
-  "bevy_sprite",
+bevy = { version = "0.17", default-features = false, features = [
   "bevy_log",
-] }
-bevy_internal = { version = "0.16", default-features = false, features = [
-  "bevy_image",
+  "bevy_render",
+  "bevy_sprite",
 ] }
 bevy_aseprite_derive = "0.3"
 bevy_aseprite_reader = "0.1"
 
 [dev-dependencies]
-bevy = "0.16"
+bevy = "0.17"

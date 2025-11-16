@@ -1,4 +1,6 @@
-use bevy::{asset::LoadState, platform::collections::HashSet, prelude::*};
+use bevy::asset::LoadState;
+use bevy::platform::collections::HashSet;
+use bevy::prelude::*;
 use bevy_mod_aseprite::{
     Aseprite, AsepriteAnimation, AsepriteAsset, AsepritePlugin, AsepriteSystems, AsepriteTag,
 };
@@ -12,7 +14,7 @@ pub fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_plugins(AsepritePlugin)
-        .init_resource::<Events<PlayerChanged>>()
+        .init_resource::<Messages<PlayerChanged>>()
         .init_resource::<AsepriteHandles>()
         .init_state::<AppState>()
         .add_systems(OnEnter(AppState::Loading), load_assets)
@@ -80,16 +82,16 @@ fn setup(
             ..default()
         },
         Sprite {
-            image: ase_asset.texture().clone_weak(),
+            image: ase_asset.texture().clone(),
             texture_atlas: Some(TextureAtlas {
                 index: anim.current_frame(),
-                layout: ase_asset.layout().clone_weak(),
+                layout: ase_asset.layout().clone(),
             }),
             ..default()
         },
         Aseprite {
             anim,
-            asset: ase_handle.clone_weak(),
+            asset: ase_handle.clone(),
         },
     ));
 }
@@ -98,7 +100,7 @@ fn update_player(
     time: Res<Time>,
     aseprites: Res<Assets<AsepriteAsset>>,
     mut commands: Commands,
-    mut ev_player_changed: EventReader<PlayerChanged>,
+    mut ev_player_changed: MessageReader<PlayerChanged>,
     mut player_q: Query<
         (
             Entity,
@@ -169,7 +171,7 @@ fn transition_player(
     time: Res<Time>,
     player_q: Query<(&PlayerState, &Aseprite), With<Player>>,
     aseprites: Res<Assets<AsepriteAsset>>,
-    mut ev_player_changed: EventWriter<PlayerChanged>,
+    mut ev_player_changed: MessageWriter<PlayerChanged>,
 ) -> Result {
     let (&player_state, ase) = player_q.single()?;
     let ase_asset = aseprites.get(&ase.asset).unwrap();
@@ -186,7 +188,7 @@ fn transition_player(
 fn keyboard_input(
     keys: Res<ButtonInput<KeyCode>>,
     player_q: Query<&PlayerState, With<Player>>,
-    mut ev_player_changed: EventWriter<PlayerChanged>,
+    mut ev_player_changed: MessageWriter<PlayerChanged>,
 ) -> Result {
     let player_state = player_q.single()?;
 
@@ -266,7 +268,7 @@ impl PlayerState {
     }
 }
 
-#[derive(Default, Event)]
+#[derive(Default, Message)]
 pub struct PlayerChanged {
     new_state: Option<PlayerState>,
     new_orientation: Option<Orientation>,
