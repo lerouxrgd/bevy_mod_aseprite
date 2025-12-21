@@ -10,11 +10,28 @@ use bevy::reflect::TypePath;
 
 pub use self::anim::{AsepriteAnimation, AsepriteTag};
 pub use bevy_aseprite_derive::aseprite;
-pub use bevy_aseprite_reader::{
-    AsepriteFrameInfo, AsepriteInfo, AsepritePalette, AsepriteSlice,
-    raw::{AsepriteAnimationDirection, AsepriteColor, AsepriteNinePatchInfo},
-};
 pub use error::AsepriteLoaderError;
+
+pub mod info {
+    use bevy::platform::collections::HashMap;
+
+    pub use aseprite_loader::binary::chunks::slice::{NinePatch, Pivot, SliceKey};
+    pub use aseprite_loader::binary::chunks::tags::AnimationDirection;
+    pub use aseprite_loader::binary::palette::Palette;
+    pub use aseprite_loader::binary::scalars::{Byte, Double, Dword, Long};
+    pub use aseprite_loader::loader::Tag;
+
+    #[derive(Debug)]
+    pub struct AsepriteInfo {
+        pub dimensions: (u16, u16),
+        pub tags: HashMap<String, Tag>,
+        pub slices: HashMap<String, Vec<SliceKey>>,
+        pub frame_count: usize,
+        pub palette: Option<Palette>,
+        pub transparent_palette: Byte,
+        pub frame_durations: Vec<u16>, // In milliseconds
+    }
+}
 
 pub struct AsepritePlugin;
 
@@ -39,10 +56,10 @@ pub enum AsepriteSystems {
     Refresh,
 }
 
-#[derive(Debug, Clone, TypePath, Asset)]
+#[derive(Debug, TypePath, Asset)]
 pub struct AsepriteAsset {
     /// Info stores data such as tags and slices
-    info: AsepriteInfo,
+    info: crate::info::AsepriteInfo,
     /// TextureAtlasLayout that gets built from the frame info of the Aseprite file
     atlas_layout: Handle<TextureAtlasLayout>,
     /// The actual atlas image
@@ -50,7 +67,7 @@ pub struct AsepriteAsset {
 }
 
 impl AsepriteAsset {
-    pub fn info(&self) -> &AsepriteInfo {
+    pub fn info(&self) -> &crate::info::AsepriteInfo {
         &self.info
     }
 

@@ -1,13 +1,14 @@
+use bevy::asset::uuid::Uuid;
 use bevy::asset::{AssetLoader, RenderAssetUsages};
-use bevy::image::TextureFormatPixelInfo;
 use bevy::log;
+use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use bevy::tasks::ConditionalSendFuture;
-use bevy::tasks::futures_lite::io;
 
+use crate::AsepriteAsset;
 use crate::error::AsepriteLoaderError;
-use crate::{AsepriteAsset, AsepriteInfo};
+use crate::info::{AsepriteInfo, Palette};
 
 #[derive(Debug, Default)]
 pub struct AsepriteLoader;
@@ -26,88 +27,83 @@ impl AssetLoader for AsepriteLoader {
         Box::pin(async move {
             log::debug!("Loading aseprite at {:?}", load_context.path());
 
-            let mut buffer = vec![];
-            reader.read_to_end(&mut buffer).await?;
-            let ase_data = bevy_aseprite_reader::Aseprite::from_bytes(buffer)?;
+            let mut bytes = vec![];
+            reader.read_to_end(&mut bytes).await?;
+            let raw = aseprite_loader::loader::AsepriteFile::load(&bytes)?;
 
-            let frames = ase_data.frames();
-            let ase_images = frames.get_for(&(0..frames.count() as u16)).get_images()?;
+            let mut images = Vec::new();
+            for (index, _frame) in raw.frames().iter().enumerate() {
+                let (width, height) = raw.size();
+                let mut buffer = vec![0; width as usize * height as usize * 4];
+                let _hash = raw.combined_frame_image(index, buffer.as_mut_slice())?;
+                let image = Image::new_fill(
+                    Extent3d {
+                        width: width as u32,
+                        height: height as u32,
+                        depth_or_array_layers: 1,
+                    },
+                    TextureDimension::D2,
+                    &buffer,
+                    TextureFormat::Rgba8UnormSrgb,
+                    RenderAssetUsages::default(),
+                );
+                images.push(image);
+            }
 
-            let rects: Vec<URect> = ase_images
+            // Atlas
+
+            let mut atlas_builder = TextureAtlasBuilder::default();
+            let mut frame_images = Vec::new();
+            for image in images.iter() {
+                let handle_id = AssetId::Uuid {
+                    uuid: Uuid::new_v4(),
+                };
+                frame_images.push(handle_id);
+                atlas_builder.add_texture(Some(handle_id), &image);
+            }
+            let (layout, _source, image) = atlas_builder.build()?;
+            let atlas_layout = load_context.add_labeled_asset("atlas_layout".into(), layout);
+            let atlas_texture = load_context.add_labeled_asset("atlas_texture".into(), image);
+
+            // Information
+
+            let dimensions = raw.size();
+
+            let mut tags = HashMap::new();
+            raw.tags().iter().for_each(|tag| {
+                tags.insert(tag.name.clone(), tag.clone());
+            });
+
+            let mut slices = HashMap::new();
+            raw.slices().iter().for_each(|slice| {
+                slices.insert(slice.name.to_string(), slice.slice_keys.clone());
+            });
+
+            let frame_count = raw.frames().iter().count();
+
+            let palette = raw
+                .file
+                .palette
+                .as_ref()
+                .map(|p| Palette { colors: p.colors });
+
+            let transparent_palette = raw.file.header.transparent_index;
+
+            let frame_durations = raw
+                .frames()
                 .iter()
-                .enumerate()
-                .map(|(i, texture)| {
-                    let min_x = i as u32 * texture.width();
-                    let min_y = 0;
-                    let max_x = (i + 1) as u32 * texture.width();
-                    let max_y = texture.height();
-                    URect::new(min_x, min_y, max_x, max_y)
-                })
-                .collect();
-
-            let format = TextureFormat::bevy_default();
-            let textures = ase_images
-                .into_iter()
-                .map(|texture| {
-                    Image::new(
-                        Extent3d {
-                            width: texture.width(),
-                            height: texture.height(),
-                            depth_or_array_layers: 1,
-                        },
-                        TextureDimension::D2,
-                        texture.into_raw(),
-                        format,
-                        RenderAssetUsages::default(),
-                    )
-                })
+                .map(|frame| frame.duration)
                 .collect::<Vec<_>>();
 
-            let info: AsepriteInfo = ase_data.into();
-
-            let (frame_width, frame_height) = info.dimensions;
-            let atlas_width = frame_width as u32 * info.frame_count as u32;
-            let atlas_height = frame_height as u32;
-
-            let mut atlas_texture = Image::new(
-                Extent3d {
-                    width: atlas_width,
-                    height: atlas_height,
-                    depth_or_array_layers: 1,
-                },
-                TextureDimension::D2,
-                vec![0; format.pixel_size()? * (atlas_width * atlas_height) as usize],
-                format,
-                RenderAssetUsages::default(),
-            );
-            for (i, texture) in textures.into_iter().enumerate() {
-                let rect_width = frame_width as usize;
-                let rect_height = frame_height as usize;
-                let rect_x = i * frame_width as usize;
-                let rect_y = 0;
-                let atlas_width = atlas_width as usize;
-                let format_size = format.pixel_size()?;
-
-                for (texture_y, bound_y) in (rect_y..rect_y + rect_height).enumerate() {
-                    let begin = (bound_y * atlas_width + rect_x) * format_size;
-                    let end = begin + rect_width * format_size;
-                    let texture_begin = texture_y * rect_width * format_size;
-                    let texture_end = texture_begin + rect_width * format_size;
-                    let atlas_data = atlas_texture.data.as_mut().ok_or_else(|| {
-                        AsepriteLoaderError::Io(io::Error::other("No atlas data"))
-                    })?;
-                    let image_data = texture.data.as_ref().ok_or_else(|| {
-                        AsepriteLoaderError::Io(io::Error::other("No image data"))
-                    })?;
-                    atlas_data[begin..end].copy_from_slice(&image_data[texture_begin..texture_end]);
-                }
-            }
-            let atlas_texture = load_context.add_labeled_asset("image".into(), atlas_texture);
-
-            let mut atlas_layout =
-                TextureAtlasLayout::new_empty(UVec2::new(atlas_width, atlas_height));
-            atlas_layout.textures = rects;
-            let atlas_layout = load_context.add_labeled_asset("atlas".into(), atlas_layout);
+            let info = AsepriteInfo {
+                dimensions,
+                tags,
+                slices,
+                frame_count,
+                palette,
+                transparent_palette,
+                frame_durations,
+            };
 
             Ok(AsepriteAsset {
                 info,

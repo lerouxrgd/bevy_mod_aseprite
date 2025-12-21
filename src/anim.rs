@@ -2,8 +2,8 @@ use std::time::Duration;
 
 use bevy::log;
 use bevy::prelude::*;
-use bevy_aseprite_reader::{AsepriteInfo, raw::AsepriteAnimationDirection};
 
+use crate::info::{AnimationDirection, AsepriteInfo};
 use crate::{Aseprite, AsepriteAsset};
 
 #[derive(Debug, Default)]
@@ -26,13 +26,16 @@ impl AsepriteAnimation {
             .as_ref()
             .and_then(|tag| {
                 info.tags.get(tag).map(|tag| {
-                    let (current_frame, forward) = match tag.animation_direction {
-                        AsepriteAnimationDirection::Forward
-                        | AsepriteAnimationDirection::PingPong => (tag.frames.start as usize, true),
-                        AsepriteAnimationDirection::Reverse => (tag.frames.end as usize - 1, false),
+                    let (current_frame, forward) = match tag.direction {
+                        AnimationDirection::Forward
+                        | AnimationDirection::PingPong
+                        | AnimationDirection::Unknown(_) => (*tag.range.start() as usize, true),
+                        AnimationDirection::Reverse | AnimationDirection::PingPongReverse => {
+                            (*tag.range.end() as usize - 1, false)
+                        }
                     };
                     let current_timer = Timer::from_seconds(
-                        info.frame_infos[current_frame].delay_ms as f32 / 1000.0,
+                        info.frame_durations[current_frame] as f32 / 1000.0,
                         TimerMode::Once,
                     );
                     (current_frame, current_timer, forward)
@@ -42,7 +45,7 @@ impl AsepriteAnimation {
                 let current_frame = 0;
                 let forward = true;
                 let current_timer = Timer::from_seconds(
-                    info.frame_infos[current_frame].delay_ms as f32 / 1000.0,
+                    info.frame_durations[current_frame] as f32 / 1000.0,
                     TimerMode::Once,
                 );
                 (current_frame, current_timer, forward)
@@ -86,31 +89,31 @@ impl AsepriteAnimation {
                     }
                 };
 
-                match tag.animation_direction {
-                    AsepriteAnimationDirection::Forward => {
+                match tag.direction {
+                    AnimationDirection::Forward => {
                         let next_frame = self.current_frame + 1;
-                        if tag.frames.contains(&(next_frame as u16)) {
+                        if tag.range.contains(&(next_frame as u16)) {
                             self.current_frame = next_frame;
                         } else {
-                            self.current_frame = tag.frames.start as usize;
+                            self.current_frame = *tag.range.start() as usize;
                         }
                     }
-                    AsepriteAnimationDirection::Reverse => {
+                    AnimationDirection::Reverse => {
                         let next_frame = self.current_frame.checked_sub(1);
                         if let Some(next_frame) = next_frame {
-                            if tag.frames.contains(&((next_frame) as u16)) {
+                            if tag.range.contains(&(next_frame as u16)) {
                                 self.current_frame = next_frame;
                             } else {
-                                self.current_frame = tag.frames.end as usize - 1;
+                                self.current_frame = *tag.range.end() as usize - 1;
                             }
                         } else {
-                            self.current_frame = tag.frames.end as usize - 1;
+                            self.current_frame = *tag.range.end() as usize - 1;
                         }
                     }
-                    AsepriteAnimationDirection::PingPong => {
+                    AnimationDirection::PingPong => {
                         if self.forward {
                             let next_frame = self.current_frame + 1;
-                            if tag.frames.contains(&(next_frame as u16)) {
+                            if tag.range.contains(&(next_frame as u16)) {
                                 self.current_frame = next_frame;
                             } else {
                                 self.current_frame = next_frame.saturating_sub(1);
@@ -119,13 +122,36 @@ impl AsepriteAnimation {
                         } else {
                             let next_frame = self.current_frame.checked_sub(1);
                             if let Some(next_frame) = next_frame
-                                && tag.frames.contains(&(next_frame as u16))
+                                && tag.range.contains(&(next_frame as u16))
                             {
                                 self.current_frame = next_frame
                             }
                             self.current_frame += 1;
                             self.forward = true;
                         }
+                    }
+                    AnimationDirection::PingPongReverse => {
+                        if self.forward {
+                            let next_frame = self.current_frame.checked_sub(1);
+                            if let Some(next_frame) = next_frame
+                                && tag.range.contains(&(next_frame as u16))
+                            {
+                                self.current_frame = next_frame
+                            }
+                            self.current_frame += 1;
+                            self.forward = false;
+                        } else {
+                            let next_frame = self.current_frame + 1;
+                            if tag.range.contains(&(next_frame as u16)) {
+                                self.current_frame = next_frame;
+                            } else {
+                                self.current_frame = next_frame.saturating_sub(1);
+                                self.forward = true;
+                            }
+                        }
+                    }
+                    AnimationDirection::Unknown(dir) => {
+                        log::warn!("Unknown animation direction {dir}");
                     }
                 }
             }
@@ -137,7 +163,7 @@ impl AsepriteAnimation {
 
     /// The current frame duration
     pub fn current_frame_duration(&self, info: &AsepriteInfo) -> Duration {
-        Duration::from_millis(info.frame_infos[self.current_frame].delay_ms as u64)
+        Duration::from_millis(info.frame_durations[self.current_frame] as u64)
     }
 
     /// The current frame absolute index
@@ -154,7 +180,10 @@ impl AsepriteAnimation {
     pub fn current_tag_frame(&self, info: &AsepriteInfo) -> Option<usize> {
         self.tag.as_ref().and_then(|tag| {
             if let Some(tag) = info.tags.get(tag) {
-                Some(self.current_frame.saturating_sub(tag.frames.start as usize))
+                Some(
+                    self.current_frame
+                        .saturating_sub(*tag.range.start() as usize),
+                )
             } else {
                 log::error!("Tag {} wasn't found.", tag);
                 None
@@ -168,14 +197,15 @@ impl AsepriteAnimation {
             return;
         };
 
-        self.current_frame = (tag.frames.start as usize + frame).min(tag.frames.end as usize - 1);
+        self.current_frame =
+            (*tag.range.start() as usize + frame).min(*tag.range.end() as usize - 1);
     }
 
-    /// The number of remaning frames in the current tag
+    /// The number of reman*ing() range in the current tag
     pub fn remaining_tag_frames(&self, info: &AsepriteInfo) -> Option<usize> {
         self.tag.as_ref().and_then(|tag| {
             if let Some(tag) = info.tags.get(tag) {
-                Some((tag.frames.end as usize - 1) - self.current_frame)
+                Some((*tag.range.end() as usize - 1) - self.current_frame)
             } else {
                 log::error!("Tag {} wasn't found.", tag);
                 None
