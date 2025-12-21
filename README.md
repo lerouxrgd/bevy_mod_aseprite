@@ -40,6 +40,11 @@ cargo run --example aseprite
 Basic usage is as follows:
 
 ```rust,ignore
+use bevy_mod_aseprite::prelude::*;
+
+#[derive(Resource, Deref, DerefMut, Default)]
+struct AsepriteHandles(Vec<Handle<AsepriteAsset>>);
+
 fn load_assets(asset_server: Res<AssetServer>, mut ase_handles: ResMut<AsepriteHandles>) {
     let player = asset_server.load("player.ase");
     ase_handles.push(player);
@@ -52,14 +57,14 @@ fn setup(
 ) {
     let ase_handle = &ase_handles[0];
     let ase_asset = ase_assets.get(ase_handle).unwrap();
-    let anim = AsepriteAnimation::new(ase_asset.info(), "idle");
+    let anim = AsepriteAnimation::new(&ase_asset.info, "idle");
     commands.spawn((
         Player,
         Sprite {
-            image: ase_asset.texture().clone(),
+            image: ase_asset.atlas_texture.clone(),
             texture_atlas: Some(TextureAtlas {
                 index: anim.current_frame(),
-                layout: ase_asset.layout().clone(),
+                layout: ase_asset.atlas_layout.clone(),
             }),
             ..default()
         },
@@ -69,9 +74,6 @@ fn setup(
         },
     ));
 }
-
-#[derive(Resource, Deref, DerefMut, Default)]
-struct AsepriteHandles(Vec<Handle<AsepriteAsset>>);
 ```
 
 The [`AsepriteAnimation`][aseprite-anim] struct also exposes methods to get information
@@ -89,7 +91,7 @@ fn transition_player(
     let ase_asset = aseprites.get(&ase.asset).unwrap();
     // Change the player state to idle at the end of the attack animation
     if let PlayerState::Attack = player_state {
-        let remaining_frames = ase.anim.remaining_tag_frames(ase_asset.info()).unwrap();
+        let remaining_frames = ase.anim.remaining_tag_frames(&ase_asset.info).unwrap();
         let frame_finished = ase.anim.frame_finished(time.delta());
         if remaining_frames == 0 && frame_finished {
             ev_player_changed.send(PlayerState::Stand.into());
@@ -103,7 +105,7 @@ fn transition_player(
 
 | **bevy** | **bevy_mod_aseprite** |
 |----------|-----------------------|
-| 0.17     | 0.11                  |
+| 0.17     | 0.11, 0.12            |
 | 0.16     | 0.10                  |
 | 0.15     | 0.9                   |
 | 0.14     | 0.8                   |

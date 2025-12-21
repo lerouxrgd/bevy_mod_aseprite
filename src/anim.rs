@@ -6,7 +6,7 @@ use bevy::prelude::*;
 use crate::info::{AnimationDirection, AsepriteInfo};
 use crate::{Aseprite, AsepriteAsset};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct AsepriteAnimation {
     tag: Option<String>,
     current_frame: usize,
@@ -267,7 +267,7 @@ pub fn update_animations(
             log::error!("Aseprite handle {:?}: no corresponding asset", ase.asset);
             continue;
         };
-        if ase.anim.update(ase_asset.info(), time.delta()) {
+        if ase.anim.update(&ase_asset.info, time.delta()) {
             if let Some(atlas) = sprite.texture_atlas.as_mut() {
                 atlas.index = ase.anim.current_frame();
             } else {
