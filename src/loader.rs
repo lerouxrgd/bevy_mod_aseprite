@@ -6,8 +6,8 @@ use bevy::prelude::*;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use bevy::tasks::ConditionalSendFuture;
 
-use crate::AsepriteAsset;
 use crate::info::{AsepriteInfo, Palette};
+use crate::plugin::AsepriteAsset;
 
 #[derive(Debug, Default)]
 pub struct AsepriteLoader;

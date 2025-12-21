@@ -4,7 +4,7 @@ use bevy::log;
 use bevy::prelude::*;
 
 use crate::info::{AnimationDirection, AsepriteInfo};
-use crate::{Aseprite, AsepriteAsset};
+use crate::plugin::{Aseprite, AsepriteAsset};
 
 #[derive(Debug, Default, Clone)]
 pub struct AsepriteAnimation {
