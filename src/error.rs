@@ -1,15 +1,27 @@
-use bevy_aseprite_reader as reader;
-
 #[derive(Debug)]
 pub enum AsepriteLoaderError {
-    Aseprite(reader::error::AsepriteError),
+    LoadSprite(aseprite_loader::loader::LoadSpriteError),
+    LoadImage(aseprite_loader::loader::LoadImageError),
+    AtlasBuilder(bevy::image::TextureAtlasBuilderError),
     Io(std::io::Error),
     TextureAccess(bevy::image::TextureAccessError),
 }
 
-impl From<reader::error::AsepriteError> for AsepriteLoaderError {
-    fn from(value: reader::error::AsepriteError) -> Self {
-        Self::Aseprite(value)
+impl From<aseprite_loader::loader::LoadSpriteError> for AsepriteLoaderError {
+    fn from(value: aseprite_loader::loader::LoadSpriteError) -> Self {
+        Self::LoadSprite(value)
+    }
+}
+
+impl From<aseprite_loader::loader::LoadImageError> for AsepriteLoaderError {
+    fn from(value: aseprite_loader::loader::LoadImageError) -> Self {
+        Self::LoadImage(value)
+    }
+}
+
+impl From<bevy::image::TextureAtlasBuilderError> for AsepriteLoaderError {
+    fn from(value: bevy::image::TextureAtlasBuilderError) -> Self {
+        Self::AtlasBuilder(value)
     }
 }
 

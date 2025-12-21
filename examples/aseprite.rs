@@ -72,7 +72,7 @@ fn setup(
 
     let ase_handle = &ase_handles[0];
     let ase_asset = ase_assets.get(ase_handle).unwrap();
-    let anim = AsepriteAnimation::new(ase_asset.info(), sprites::Player::tags::STAND);
+    let anim = AsepriteAnimation::new(&ase_asset.info, sprites::Player::tags::STAND);
     commands.spawn((
         Player,
         PlayerState::Stand,
@@ -82,10 +82,10 @@ fn setup(
             ..default()
         },
         Sprite {
-            image: ase_asset.texture().clone(),
+            image: ase_asset.atlas_texture.clone(),
             texture_atlas: Some(TextureAtlas {
                 index: anim.current_frame(),
-                layout: ase_asset.layout().clone(),
+                layout: ase_asset.atlas_layout.clone(),
             }),
             ..default()
         },
@@ -131,7 +131,7 @@ fn update_player(
     } in ev_player_changed.read()
     {
         if let Some(new_state) = new_state {
-            let info = aseprites.get(&aseprite.asset).unwrap().info();
+            let info = &aseprites.get(&aseprite.asset).unwrap().info;
             aseprite.anim = AsepriteAnimation::new(info, new_state.animation_tag());
             match new_state {
                 PlayerState::Stand | PlayerState::Attack => {
@@ -176,7 +176,7 @@ fn transition_player(
     let (&player_state, ase) = player_q.single()?;
     let ase_asset = aseprites.get(&ase.asset).unwrap();
     if let PlayerState::Attack = player_state {
-        let remaining_frames = ase.anim.remaining_tag_frames(ase_asset.info()).unwrap();
+        let remaining_frames = ase.anim.remaining_tag_frames(&ase_asset.info).unwrap();
         let frame_finished = ase.anim.frame_finished(time.delta());
         if remaining_frames == 0 && frame_finished {
             ev_player_changed.write(PlayerState::Stand.into());
