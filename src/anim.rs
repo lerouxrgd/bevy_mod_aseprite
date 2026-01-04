@@ -200,7 +200,7 @@ impl AsepriteAnimation {
         self.current_frame = (*tag.range.start() as usize + frame).min(*tag.range.end() as usize);
     }
 
-    /// The number of reman*ing() range in the current tag
+    /// The number of remaning frames in the current tag
     pub fn remaining_tag_frames(&self, info: &AsepriteInfo) -> Option<usize> {
         self.tag.as_ref().and_then(|tag| {
             if let Some(tag) = info.tags.get(tag) {
