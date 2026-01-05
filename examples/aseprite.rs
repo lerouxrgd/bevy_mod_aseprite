@@ -7,7 +7,10 @@ use bevy_mod_aseprite::{
 
 pub mod sprites {
     use bevy_mod_aseprite::aseprite;
-    aseprite!(pub Player, "player.ase");
+
+    #[allow(non_snake_case)]
+    #[aseprite(file = "player.ase")]
+    pub mod Player {}
 }
 
 pub fn main() {
