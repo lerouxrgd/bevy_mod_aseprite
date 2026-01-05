@@ -18,6 +18,8 @@ pub mod prelude {
     };
 }
 
+pub use bevy_mod_aseprite_derive::*;
+
 /// Generates static tags and slices descriptions of an Aserpite animation.
 ///
 /// Calling it as follows:

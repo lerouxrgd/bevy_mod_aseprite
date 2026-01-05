@@ -11,6 +11,79 @@ pub mod sprites {
 }
 
 pub fn main() {
+    // TODO: remove this is WIP
+    {
+        use bevy_mod_aseprite::{MyDerive, MyOtherDerive, asepritee};
+
+        #[derive(MyDerive, MyOtherDerive)]
+        #[aseprite(file = "player.ase")]
+        struct Foo;
+
+        let a = Foo;
+        assert_eq!(Foo::file(), "player.ase"); // TODO: rename aseprite_file()
+
+        let b = WeshWesh;
+        assert_eq!(WeshWesh::file(), "player.ase");
+
+        // pub struct Player;
+        // impl Player {
+        //     pub const PATH: &'static str = "player.ase";
+        // }
+
+        // pub struct PlayerTags;
+        // impl PlayerTags {
+        //     pub const DIE: &'static str = "die";
+        //     pub const STAND: &'static str = "stand";
+        //     pub const ATTACK: &'static str = "attack";
+        //     pub const FALL: &'static str = "fall";
+        //     pub const JUMP: &'static str = "jump";
+        //     pub const DASH: &'static str = "dash";
+        //     pub const WOUND: &'static str = "wound";
+        //     pub const MOVE: &'static str = "move";
+        // }
+
+        // #[derive(AsepriteTags, AsepriteSlices)]
+        // #[aseprite(file = "player.ase")]
+        // struct Player;
+
+        #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        enum PlayerTags {
+            Idle,
+            Attack,
+        }
+
+        impl PlayerTags {
+            const ATTACK: AsepriteTag = AsepriteTag::new("attack");
+            const IDLE: AsepriteTag = AsepriteTag::new("idle");
+
+            pub const fn as_tag(&self) -> AsepriteTag {
+                match self {
+                    Self::Idle => Self::IDLE,
+                    Self::Attack => Self::ATTACK,
+                }
+            }
+        }
+
+        #[allow(non_snake_case)]
+        #[asepritee(file = "player.ase")]
+        mod MyModule {}
+
+        MyModule::MACRO_NAME;
+
+        // impl TryFrom<AsepriteTag> for PlayerTags {
+        //     type Error = AsepriteTag;
+
+        //     fn try_from(value: AsepriteTag) -> Result<Self, Self::Error> {
+        //         match value.as_ref() {
+        //             tag_str if tag_str == PlayerTags::IDLE.as_ref() => {
+        //                 Ok(PlayerTags::Idle(PlayerTags::IDLE))
+        //             }
+        //             _ => Err(value),
+        //         }
+        //     }
+        // }
+    }
+
     App::new()
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         .add_plugins(AsepritePlugin)

@@ -7,6 +7,9 @@ repository = "https://github.com/lerouxrgd/bevy_mod_aseprite"
 license = "MIT OR Apache-2.0"
 exclude = ["assets/"]
 
+[workspace]
+members = ["derive"]
+
 [dependencies]
 aseprite-loader = "0.4"
 bevy = { version = "0.17", default-features = false, features = [
@@ -14,6 +17,8 @@ bevy = { version = "0.17", default-features = false, features = [
   "bevy_render",
   "bevy_sprite",
 ] }
+bevy_mod_aseprite_derive = { path = "./derive", version = "0.1" }
+
 bevy_aseprite_derive = "0.3"
 
 [dev-dependencies]
