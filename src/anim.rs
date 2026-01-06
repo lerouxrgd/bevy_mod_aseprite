@@ -205,7 +205,7 @@ impl AsepriteAnimation {
     pub fn remaining_tag_frames(&self, info: &AsepriteInfo) -> Option<usize> {
         self.tag.as_ref().and_then(|tag| {
             if let Some(tag) = info.tags.get(tag) {
-                Some((*tag.range.end() as usize - 1) - self.current_frame)
+                Some((*tag.range.end() as usize) - self.current_frame)
             } else {
                 log::error!("Tag {} wasn't found.", tag);
                 None
