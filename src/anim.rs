@@ -31,7 +31,7 @@ impl AsepriteAnimation {
                         | AnimationDirection::PingPong
                         | AnimationDirection::Unknown(_) => (*tag.range.start() as usize, true),
                         AnimationDirection::Reverse | AnimationDirection::PingPongReverse => {
-                            (*tag.range.end() as usize - 1, false)
+                            (*tag.range.end() as usize, false)
                         }
                     };
                     let current_timer = Timer::from_seconds(
@@ -104,10 +104,10 @@ impl AsepriteAnimation {
                             if tag.range.contains(&(next_frame as u16)) {
                                 self.current_frame = next_frame;
                             } else {
-                                self.current_frame = *tag.range.end() as usize - 1;
+                                self.current_frame = *tag.range.end() as usize;
                             }
                         } else {
-                            self.current_frame = *tag.range.end() as usize - 1;
+                            self.current_frame = *tag.range.end() as usize;
                         }
                     }
                     AnimationDirection::PingPong => {
@@ -197,8 +197,7 @@ impl AsepriteAnimation {
             return;
         };
 
-        self.current_frame =
-            (*tag.range.start() as usize + frame).min(*tag.range.end() as usize - 1);
+        self.current_frame = (*tag.range.start() as usize + frame).min(*tag.range.end() as usize);
     }
 
     /// The number of reman*ing() range in the current tag
