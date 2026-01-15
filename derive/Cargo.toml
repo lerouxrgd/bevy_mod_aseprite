@@ -2,7 +2,7 @@
 name = "bevy_mod_aseprite_derive"
 version = "0.1.0"
 edition = "2024"
-description = ""
+description = "A macro for static info about sprites in bevy_mod_aseprite"
 repository = "https://github.com/lerouxrgd/bevy_mod_aseprite"
 license = "MIT OR Apache-2.0"
 
