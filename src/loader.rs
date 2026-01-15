@@ -6,6 +6,7 @@ use bevy::prelude::*;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use bevy::tasks::ConditionalSendFuture;
 
+use crate::anim::{AsepriteSlice, AsepriteTag};
 use crate::info::{AsepriteInfo, Palette};
 use crate::plugin::AsepriteAsset;
 
@@ -70,12 +71,12 @@ impl AssetLoader for AsepriteLoader {
 
             let mut tags = HashMap::new();
             raw.tags().iter().for_each(|tag| {
-                tags.insert(tag.name.clone(), tag.clone());
+                tags.insert(AsepriteTag::from(tag.name.as_str()), tag.clone());
             });
 
             let mut slices = HashMap::new();
             raw.slices().iter().for_each(|slice| {
-                slices.insert(slice.name.to_string(), slice.slice_keys.clone());
+                slices.insert(AsepriteSlice::from(slice.name), slice.slice_keys.clone());
             });
 
             let frame_count = raw.frames().iter().count();

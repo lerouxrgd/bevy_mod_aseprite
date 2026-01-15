@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::time::Duration;
 
 use bevy::log;
@@ -8,7 +9,7 @@ use crate::plugin::{Aseprite, AsepriteAsset};
 
 #[derive(Debug, Default, Clone)]
 pub struct AsepriteAnimation {
-    tag: Option<String>,
+    tag: Option<AsepriteTag>,
     current_frame: usize,
     current_timer: Timer,
     forward: bool,
@@ -20,7 +21,7 @@ impl AsepriteAnimation {
         T: Into<Option<U>>,
         U: Into<AsepriteTag>,
     {
-        let tag = tag.into().map(|t| t.into().0);
+        let tag = tag.into().map(|t| t.into());
 
         let (current_frame, current_timer, forward) = tag
             .as_ref()
@@ -84,7 +85,7 @@ impl AsepriteAnimation {
                 let tag = match info.tags.get(tag) {
                     Some(tag) => tag,
                     None => {
-                        log::error!("Tag {} wasn't found.", tag);
+                        log::error!("Tag {:?} wasn't found.", tag);
                         return;
                     }
                 };
@@ -185,7 +186,7 @@ impl AsepriteAnimation {
                         .saturating_sub(*tag.range.start() as usize),
                 )
             } else {
-                log::error!("Tag {} wasn't found.", tag);
+                log::error!("Tag {:?} wasn't found.", tag);
                 None
             }
         })
@@ -200,13 +201,13 @@ impl AsepriteAnimation {
         self.current_frame = (*tag.range.start() as usize + frame).min(*tag.range.end() as usize);
     }
 
-    /// The number of reman*ing() range in the current tag
+    /// The number of remaning frames in the current tag
     pub fn remaining_tag_frames(&self, info: &AsepriteInfo) -> Option<usize> {
         self.tag.as_ref().and_then(|tag| {
             if let Some(tag) = info.tags.get(tag) {
                 Some((*tag.range.end() as usize) - self.current_frame)
             } else {
-                log::error!("Tag {} wasn't found.", tag);
+                log::error!("Tag {:?} wasn't found.", tag);
                 None
             }
         })
@@ -251,8 +252,8 @@ impl AsepriteAnimation {
         }
     }
 
-    pub fn tag(&self) -> Option<&str> {
-        self.tag.as_deref()
+    pub fn tag(&self) -> Option<&AsepriteTag> {
+        self.tag.as_ref()
     }
 }
 
@@ -294,24 +295,56 @@ pub fn refresh_animations(mut aseprites_query: Query<(&Aseprite, &mut Sprite), C
 
 /// A tag representing an animation
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct AsepriteTag(String);
+pub struct AsepriteTag(Cow<'static, str>);
+
+impl AsepriteTag {
+    pub const fn new(tag: &'static str) -> Self {
+        Self(Cow::Borrowed(tag))
+    }
+}
 
 impl From<&str> for AsepriteTag {
     fn from(tag: &str) -> Self {
-        Self(tag.to_string())
+        Self(Cow::Owned(tag.to_string()))
     }
 }
 
 impl From<String> for AsepriteTag {
     fn from(tag: String) -> Self {
-        Self(tag)
+        Self(Cow::Owned(tag))
     }
 }
 
-impl std::ops::Deref for AsepriteTag {
-    type Target = str;
+impl AsRef<str> for AsepriteTag {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
 
-    fn deref(&self) -> &Self::Target {
+/// A label for a region of a sprite
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct AsepriteSlice(Cow<'static, str>);
+
+impl AsepriteSlice {
+    pub const fn new(tag: &'static str) -> Self {
+        Self(Cow::Borrowed(tag))
+    }
+}
+
+impl From<&str> for AsepriteSlice {
+    fn from(tag: &str) -> Self {
+        Self(Cow::Owned(tag.to_string()))
+    }
+}
+
+impl From<String> for AsepriteSlice {
+    fn from(tag: String) -> Self {
+        Self(Cow::Owned(tag))
+    }
+}
+
+impl AsRef<str> for AsepriteSlice {
+    fn as_ref(&self) -> &str {
         &self.0
     }
 }

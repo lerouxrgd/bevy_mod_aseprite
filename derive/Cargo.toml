@@ -1,0 +1,17 @@
+[package]
+name = "bevy_mod_aseprite_derive"
+version = "0.1.0"
+edition = "2024"
+description = ""
+repository = "https://github.com/lerouxrgd/bevy_mod_aseprite"
+license = "MIT OR Apache-2.0"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+aseprite-loader = "0.4"
+darling = "0.23"
+heck = "0.5"
+quote = "1"
+syn = "2"

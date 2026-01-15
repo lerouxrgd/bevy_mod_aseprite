@@ -6,15 +6,15 @@ pub mod info;
 mod loader;
 mod plugin;
 
-pub use crate::anim::{AsepriteAnimation, AsepriteTag};
+pub use crate::anim::{AsepriteAnimation, AsepriteSlice, AsepriteTag};
 pub use crate::info::AsepriteInfo;
 pub use crate::loader::{AsepriteLoader, AsepriteLoaderError};
 pub use crate::plugin::{Aseprite, AsepriteAsset, AsepritePlugin, AsepriteSystems};
 
 pub mod prelude {
     pub use super::{
-        Aseprite, AsepriteAnimation, AsepriteAsset, AsepriteInfo, AsepritePlugin, AsepriteSystems,
-        AsepriteTag, aseprite,
+        Aseprite, AsepriteAnimation, AsepriteAsset, AsepriteInfo, AsepritePlugin, AsepriteSlice,
+        AsepriteSystems, AsepriteTag, aseprite,
     };
 }
 
@@ -24,7 +24,9 @@ pub mod prelude {
 ///
 /// ```rust
 /// # use bevy_mod_aseprite::aseprite;
-/// aseprite!(pub Player, "player.ase");
+/// #[allow(non_snake_case)]
+/// #[aseprite(file = "player.ase")]
+/// pub mod Player {}
 /// ```
 ///
 /// Will generate:
@@ -34,14 +36,14 @@ pub mod prelude {
 /// pub mod Player {
 ///     pub const PATH: &'static str = "player.ase";
 ///     pub mod tags {
-///         pub const STAND: &'static str = "stand";
-///         pub const JUMP: &'static str = "jump";
-///         pub const DASH: &'static str = "dash";
-///         pub const WOUND: &'static str = "wound";
-///         pub const FALL: &'static str = "fall";
-///         pub const MOVE: &'static str = "move";
-///         pub const DIE: &'static str = "die";
-///         pub const ATTACK: &'static str = "attack";
+///         pub const WOUND: ::bevy_mod_aseprite::AsepriteTag  = ::bevy_mod_aseprite::AsepriteTag::new("wound");
+///         pub const STAND: ::bevy_mod_aseprite::AsepriteTag  = ::bevy_mod_aseprite::AsepriteTag::new("stand");
+///         pub const MOVE: ::bevy_mod_aseprite::AsepriteTag   = ::bevy_mod_aseprite::AsepriteTag::new("move");
+///         pub const ATTACK: ::bevy_mod_aseprite::AsepriteTag = ::bevy_mod_aseprite::AsepriteTag::new("attack");
+///         pub const DIE: ::bevy_mod_aseprite::AsepriteTag    = ::bevy_mod_aseprite::AsepriteTag::new("die");
+///         pub const JUMP: ::bevy_mod_aseprite::AsepriteTag   = ::bevy_mod_aseprite::AsepriteTag::new("jump");
+///         pub const FALL: ::bevy_mod_aseprite::AsepriteTag   = ::bevy_mod_aseprite::AsepriteTag::new("fall");
+///         pub const DASH: ::bevy_mod_aseprite::AsepriteTag   = ::bevy_mod_aseprite::AsepriteTag::new("dash");
 ///     }
 ///     pub mod slices {}
 /// }
@@ -54,7 +56,10 @@ pub mod prelude {
 /// # use bevy_mod_aseprite::prelude::*;
 /// pub mod sprites {
 ///     use bevy_mod_aseprite::aseprite;
-///     aseprite!(pub Player, "player.ase");
+///
+///     #[allow(non_snake_case)]
+///     #[aseprite(file = "player.ase")]
+///     pub mod Player {}
 /// }
 ///
 /// fn load_assets(asset_server: Res<AssetServer>, mut ase_handles: ResMut<AsepriteHandles>) {
@@ -77,4 +82,4 @@ pub mod prelude {
 /// #[derive(Resource, Deref, DerefMut, Default)]
 /// struct AsepriteHandles(Vec<Handle<AsepriteAsset>>);
 /// ```
-pub use bevy_aseprite_derive::aseprite;
+pub use bevy_mod_aseprite_derive::aseprite;
