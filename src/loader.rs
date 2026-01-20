@@ -10,7 +10,7 @@ use crate::anim::{AsepriteSlice, AsepriteTag};
 use crate::info::{AsepriteInfo, Palette};
 use crate::plugin::AsepriteAsset;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, TypePath)]
 pub struct AsepriteLoader;
 
 impl AssetLoader for AsepriteLoader {

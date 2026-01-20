@@ -36,14 +36,14 @@ pub mod prelude {
 /// pub mod Player {
 ///     pub const PATH: &'static str = "player.ase";
 ///     pub mod tags {
-///         pub const WOUND: ::bevy_mod_aseprite::AsepriteTag  = ::bevy_mod_aseprite::AsepriteTag::new("wound");
-///         pub const STAND: ::bevy_mod_aseprite::AsepriteTag  = ::bevy_mod_aseprite::AsepriteTag::new("stand");
-///         pub const MOVE: ::bevy_mod_aseprite::AsepriteTag   = ::bevy_mod_aseprite::AsepriteTag::new("move");
+///         pub const WOUND:  ::bevy_mod_aseprite::AsepriteTag = ::bevy_mod_aseprite::AsepriteTag::new("wound");
+///         pub const STAND:  ::bevy_mod_aseprite::AsepriteTag = ::bevy_mod_aseprite::AsepriteTag::new("stand");
+///         pub const MOVE:   ::bevy_mod_aseprite::AsepriteTag = ::bevy_mod_aseprite::AsepriteTag::new("move");
 ///         pub const ATTACK: ::bevy_mod_aseprite::AsepriteTag = ::bevy_mod_aseprite::AsepriteTag::new("attack");
-///         pub const DIE: ::bevy_mod_aseprite::AsepriteTag    = ::bevy_mod_aseprite::AsepriteTag::new("die");
-///         pub const JUMP: ::bevy_mod_aseprite::AsepriteTag   = ::bevy_mod_aseprite::AsepriteTag::new("jump");
-///         pub const FALL: ::bevy_mod_aseprite::AsepriteTag   = ::bevy_mod_aseprite::AsepriteTag::new("fall");
-///         pub const DASH: ::bevy_mod_aseprite::AsepriteTag   = ::bevy_mod_aseprite::AsepriteTag::new("dash");
+///         pub const DIE:    ::bevy_mod_aseprite::AsepriteTag = ::bevy_mod_aseprite::AsepriteTag::new("die");
+///         pub const JUMP:   ::bevy_mod_aseprite::AsepriteTag = ::bevy_mod_aseprite::AsepriteTag::new("jump");
+///         pub const FALL:   ::bevy_mod_aseprite::AsepriteTag = ::bevy_mod_aseprite::AsepriteTag::new("fall");
+///         pub const DASH:   ::bevy_mod_aseprite::AsepriteTag = ::bevy_mod_aseprite::AsepriteTag::new("dash");
 ///     }
 ///     pub mod slices {}
 /// }
