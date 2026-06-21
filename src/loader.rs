@@ -62,8 +62,8 @@ impl AssetLoader for AsepriteLoader {
                 atlas_builder.add_texture(Some(handle_id), image);
             }
             let (layout, _source, image) = atlas_builder.build()?;
-            let atlas_layout = load_context.add_labeled_asset("atlas_layout".into(), layout);
-            let atlas_texture = load_context.add_labeled_asset("atlas_texture".into(), image);
+            let atlas_layout = load_context.add_labeled_asset("atlas_layout", layout);
+            let atlas_texture = load_context.add_labeled_asset("atlas_texture", image);
 
             // Information
 
