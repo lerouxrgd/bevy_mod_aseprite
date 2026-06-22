@@ -1,3 +1,4 @@
+use aseprite_loader::loader::LayerSelection;
 use bevy::asset::uuid::Uuid;
 use bevy::asset::{AssetLoader, RenderAssetUsages};
 use bevy::log;
@@ -35,7 +36,7 @@ impl AssetLoader for AsepriteLoader {
             for (index, _frame) in raw.frames().iter().enumerate() {
                 let (width, height) = raw.size();
                 let mut buffer = vec![0; width as usize * height as usize * 4];
-                let _hash = raw.combined_frame_image(index, buffer.as_mut_slice())?;
+                raw.render_frame(index, buffer.as_mut_slice(), &LayerSelection::Visible)?;
                 let image = Image::new_fill(
                     Extent3d {
                         width: width as u32,
@@ -62,8 +63,8 @@ impl AssetLoader for AsepriteLoader {
                 atlas_builder.add_texture(Some(handle_id), image);
             }
             let (layout, _source, image) = atlas_builder.build()?;
-            let atlas_layout = load_context.add_labeled_asset("atlas_layout".into(), layout);
-            let atlas_texture = load_context.add_labeled_asset("atlas_texture".into(), image);
+            let atlas_layout = load_context.add_labeled_asset("atlas_layout", layout);
+            let atlas_texture = load_context.add_labeled_asset("atlas_texture", image);
 
             // Information
 
